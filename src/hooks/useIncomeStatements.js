@@ -40,12 +40,26 @@ export function useUpdateIncomeStatement(id) {
             const response = await axiosClient.patch(`/admin/income-statements/${id}`, payload)
             return response.data
         },
-        onSuccess: (data) => {
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['admin-income-statements'] })
             queryClient.invalidateQueries({ queryKey: ['admin-income-statements', id] })
         },
     })
 }
+
+export function useBatchUpdateIncomeStatement() {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: async (payload) => {
+            const response = await axiosClient.patch('/admin/income-statements/batch', payload)
+            return response.data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['admin-income-statements'] })
+        },
+    })
+}
+
 export function useGetIncomeStatementDetail(id) {
     return useQuery({
         queryKey: ['admin-income-statements', id],

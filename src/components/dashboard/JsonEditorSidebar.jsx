@@ -1,64 +1,151 @@
-import { Code2, Plus, Trash2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Plus, Trash2, Send, Copy } from 'lucide-react'
+import axiosClient from '@/api/axiosClient'
 import { useFormStore } from '@/store/useFormStore'
 
-export default function JsonEditorSidebar({ formKey }) {
-    const currentData = useFormStore((state) => state.getFormData(formKey))
-    const updateFormData = useFormStore((state) => state.updateFormData)
-    const addArrayItem = useFormStore((state) => state.addArrayItem)
-    const removeLastArrayItem = useFormStore((state) => state.removeLastArrayItem)
+export default function JsonEditorSidebar({ formKey, recordId }) {
+    const queryClient = useQueryClient()
+    const isEdit = !!recordId
 
     if (!formKey) return null
 
-    const handleJsonChange = (e) => {
+    const currentData = useFormStore((state) => state.getFormData(formKey))
+    const updateGlobalStore = useFormStore((state) => state.updateFormData)
+    const addArrayItem = useFormStore((state) => state.addArrayItem)
+    const removeLastArrayItem = useFormStore((state) => state.removeLastArrayItem)
+    const showToast = useFormStore((state) => state.showToast)
+
+    const submitMutation = useMutation({
+        mutationFn: async (payload) => {
+            if (!formKey) {
+                throw new Error('Missing active form key.')
+            }
+
+            const endpoint = isEdit
+                ? (Array.isArray(payload) && formKey === 'income-statements'
+                    ? `/admin/${formKey}/batch`
+                    : `/admin/${formKey}/${recordId}`)
+                : `/admin/${formKey}`
+
+            const method = isEdit ? 'patch' : 'post'
+            const response = await axiosClient[method](endpoint, payload)
+            return response.data
+        },
+        onSuccess: () => {
+            if (formKey) {
+                queryClient.invalidateQueries({ queryKey: [`admin-${formKey}`] })
+            }
+        }
+    })
+
+    const [jsonString, setJsonString] = useState('')
+
+    useEffect(() => {
+        setJsonString(JSON.stringify(currentData, null, 2))
+    }, [currentData])
+
+    const handleTextChange = (e) => {
+        const value = e.target.value
+        setJsonString(value)
         try {
-            const parsed = JSON.parse(e.target.value)
-            updateFormData(formKey, parsed)
-        } catch (error) {
-            // Hiraukan sementara ketika user sedang mengetik format JSON
+            const parsed = JSON.parse(value)
+            updateGlobalStore(formKey, parsed)
+        } catch (err) { }
+    }
+
+    const handleCopyJson = async () => {
+        try {
+            await navigator.clipboard.writeText(jsonString)
+            showToast('JSON text copied to clipboard.', 'success')
+        } catch (err) {
+            showToast('Failed to copy JSON text.', 'error')
         }
     }
 
-    const isArrayData = Array.isArray(currentData)
+    const handleJsonSubmit = () => {
+        try {
+            const payload = JSON.parse(jsonString)
+
+            submitMutation.mutate(payload, {
+                onSuccess: () => {
+                    if (isEdit && Array.isArray(payload)) {
+                        showToast('Batch array successfully updated via /batch endpoint.', 'success')
+                    } else if (isEdit) {
+                        showToast('Single statement object updated successfully.', 'success')
+                    } else {
+                        showToast('JSON Payload parsed and pushed to backend database successfully.', 'success')
+                        updateGlobalStore(formKey, {})
+                    }
+                },
+                onError: (err) => {
+                    showToast(err.response?.data?.message || 'Request rejected by API.', 'error')
+                }
+            })
+        } catch (err) {
+            showToast('Syntax Error: Please fix your JSON structure before submitting.', 'error')
+        }
+    }
+
+    const isPending = submitMutation.isPending
 
     return (
-        <aside className="w-96 bg-[#09090b] border-l border-zinc-900 flex flex-col overflow-hidden animate-slide-in">
-            <div className="p-4 border-b border-zinc-900 bg-[#09090b] flex items-center justify-between">
-                <h3 className="font-medium text-zinc-200 text-xs flex items-center gap-2">
-                    <Code2 className="w-3.5 h-3.5 text-emerald-500" />
-                    Live JSON Editor
-                </h3>
+        <div className="w-[400px] h-full bg-[#09090b] border-l border-zinc-900 flex flex-col text-xs text-zinc-400">
 
+            <div className="p-4 border-b border-zinc-900 flex items-center justify-between bg-[#0c0c0e]">
+                <span className="font-semibold text-zinc-200 font-mono tracking-tight">Live JSON Editor</span>
                 <div className="flex items-center gap-1.5">
-                    {isArrayData && (
-                        <button
-                            type="button"
-                            onClick={() => removeLastArrayItem(formKey)}
-                            className="flex items-center gap-1 px-2 py-1 rounded bg-zinc-900/50 hover:bg-red-950/30 text-[11px] font-medium text-zinc-500 hover:text-red-400 border border-zinc-900 hover:border-red-900/40 transition-colors"
-                        >
-                            <Trash2 className="w-3 h-3" />
-                            <span>Pop</span>
-                        </button>
-                    )}
-
                     <button
                         type="button"
-                        onClick={() => addArrayItem(formKey)}
-                        className="flex items-center gap-1 px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-[11px] font-medium text-emerald-400 border border-zinc-800 hover:border-zinc-700 transition-colors shadow-sm"
+                        onClick={handleCopyJson}
+                        className="p-1.5 rounded-md bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-100 flex items-center gap-1 transition-all"
+                        title="Copy JSON to Clipboard"
                     >
-                        <Plus className="w-3 h-3 stroke-[2.5]" />
-                        <span>Add Item</span>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleJsonSubmit}
+                        disabled={isPending}
+                        className="p-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 flex items-center gap-1 transition-all font-semibold disabled:opacity-40"
+                    >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>{isPending ? 'Pushing...' : 'Submit'}</span>
                     </button>
                 </div>
             </div>
 
-            <div className="flex-1 overflow-auto p-4">
+            <div className="flex-1 p-4 font-mono overflow-hidden">
                 <textarea
-                    value={JSON.stringify(currentData, null, 2)}
-                    onChange={handleJsonChange}
-                    className="w-full h-full min-h-[500px] bg-[#0c0c0e] text-zinc-400 font-mono text-[11px] p-4 rounded-xl border border-zinc-900 focus:border-emerald-950/80 focus:ring-1 focus:ring-emerald-950 focus:outline-none transition-all resize-none leading-relaxed"
-                    spellCheck={false}
+                    value={jsonString}
+                    onChange={handleTextChange}
+                    className="w-full h-full bg-transparent text-zinc-300 outline-none resize-none leading-relaxed font-mono focus:outline-none overflow-y-auto"
+                    spellCheck="false"
                 />
             </div>
-        </aside>
+
+            <div className="p-3 border-t border-zinc-900 bg-[#0c0c0e] flex items-center gap-2 justify-end">
+                <button
+                    type="button"
+                    onClick={() => removeLastArrayItem(formKey)}
+                    className="px-2.5 py-1.5 rounded-md bg-zinc-950 border border-zinc-900 text-zinc-500 hover:text-red-400 flex items-center gap-1 transition-all"
+                    title="Remove Last Array Node"
+                >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Remove Item</span>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => addArrayItem(formKey)}
+                    className="px-2.5 py-1.5 rounded-md bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-zinc-100 flex items-center gap-1 transition-all font-medium"
+                    title="Clone Row Parameters"
+                >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add New Item</span>
+                </button>
+            </div>
+
+        </div>
     )
 }

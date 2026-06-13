@@ -47,6 +47,7 @@ export default function Dashboard() {
   }
 
   const currentFormKey = getCurrentFormKey()
+  const currentRecordId = location.pathname.match(/\/dashboard\/[^/]+\/([^/]+)\/edit$/)?.[1] || null
 
   const menuItems = [
     { path: '/dashboard/companies', label: 'Company', icon: Building2 },
@@ -165,7 +166,7 @@ export default function Dashboard() {
 
             {/* CALL MODULAR SIDEBAR JSON EDITOR COMPONENT */}
             {isFormPage && jsonFormVisible && (
-              <JsonEditorSidebar formKey={currentFormKey} />
+              <JsonEditorSidebar formKey={currentFormKey} recordId={currentRecordId} />
             )}
           </div>
         </div>

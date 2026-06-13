@@ -37,10 +37,16 @@ export const useFormStore = create((set, get) => ({
 
         if (!Array.isArray(currentData) || currentData.length === 0) {
             const hasData = Object.keys(currentData).length > 0
-            const initialArray = hasData ? [currentData, { ...blueprint }] : [{ ...blueprint }]
-            get().updateFormData(formKey, initialArray)
+            if (hasData) {
+                const clonedFirstItem = JSON.parse(JSON.stringify(currentData))
+                get().updateFormData(formKey, [currentData, clonedFirstItem])
+            } else {
+                get().updateFormData(formKey, [{ ...blueprint }])
+            }
         } else {
-            get().updateFormData(formKey, [...currentData, { ...blueprint }])
+            const baseItem = currentData[0] || blueprint
+            const clonedItem = JSON.parse(JSON.stringify(baseItem))
+            get().updateFormData(formKey, [...currentData, clonedItem])
         }
     },
 

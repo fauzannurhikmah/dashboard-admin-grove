@@ -191,13 +191,13 @@ export default function IncomeStatementForm() {
         }
       })
     } else {
-      createMutation.mutate(payload, {
+      createMutation.mutate(currentFormData, {
         onSuccess: (data) => {
           showToast('New income statement registered successfully.', 'success')
           updateGlobalStore('income-statements', {})
           setForm(defaultBlueprint)
           setCompanyQuery('')
-          if (data?.id) {
+          if (!Array.isArray(data) && data?.id) {
             navigate(`/dashboard/income-statements/${data.id}/edit`)
           }
         },
