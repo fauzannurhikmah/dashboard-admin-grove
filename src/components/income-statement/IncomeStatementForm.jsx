@@ -66,6 +66,12 @@ export default function IncomeStatementForm() {
   const companyOptions = searchResults?.items || []
 
   useEffect(() => {
+    return () => {
+      updateGlobalStore('income-statements', {})
+    }
+  }, [])
+
+  useEffect(() => {
     if (isEdit && serverDetail) {
       const cleanDetail = { ...serverDetail }
       delete cleanDetail.id
@@ -88,10 +94,15 @@ export default function IncomeStatementForm() {
   }, [isEdit, serverDetail])
 
   useEffect(() => {
-    if (!isEdit && currentFormData) {
-      const targetData = Array.isArray(currentFormData) ? currentFormData[0] : currentFormData
-      if (targetData && Object.keys(targetData).length > 0) {
-        setForm(prev => ({ ...prev, ...targetData }))
+    if (!isEdit) {
+      if (currentFormData && Object.keys(currentFormData).length > 0) {
+        const targetData = Array.isArray(currentFormData) ? currentFormData[0] : currentFormData
+        if (targetData && Object.keys(targetData).length > 0) {
+          setForm(prev => ({ ...prev, ...targetData }))
+        }
+      } else {
+        setForm(defaultBlueprint)
+        setCompanyQuery('')
       }
     }
   }, [currentFormData, isEdit])
