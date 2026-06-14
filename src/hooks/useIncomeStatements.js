@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import axiosClient from '../api/axiosClient'
 
-export function useGetIncomeStatements(page = 1, pageSize = 20, keyword = '', period = '') {
+export function useGetIncomeStatements(page = 1, pageSize = 20, keyword = '', period = '', sectorId = '') {
     return useQuery({
-        queryKey: ['admin-income-statements', page, pageSize, keyword, period],
+        queryKey: ['admin-income-statements', page, pageSize, keyword, period, sectorId],
         queryFn: async () => {
             const response = await axiosClient.get('/admin/income-statements', {
                 params: {
@@ -11,12 +11,12 @@ export function useGetIncomeStatements(page = 1, pageSize = 20, keyword = '', pe
                     pageSize,
                     keyword: keyword || undefined,
                     period: period || undefined,
+                    sectorId: sectorId || undefined,
                 },
             })
             return response.data
         },
         placeholderData: (previousData) => previousData,
-        staleTime: 5 * 60 * 1000,
     })
 }
 

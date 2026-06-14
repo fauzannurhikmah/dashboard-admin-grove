@@ -189,9 +189,8 @@ export default function IncomeStatementForm() {
   const handleSubmit = (e) => {
     e.preventDefault()
 
-    const payload = Array.isArray(currentFormData) ? currentFormData[0] : currentFormData
-
     if (isEdit) {
+      const payload = Array.isArray(currentFormData) ? currentFormData[0] : currentFormData
       updateMutation.mutate(payload, {
         onSuccess: async () => {
           showToast('Financial ledger items updated successfully.', 'success')
