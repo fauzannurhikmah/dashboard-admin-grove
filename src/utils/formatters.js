@@ -40,13 +40,7 @@ export const formatAbbreviated = (value) => {
     val = num;
   }
 
-  // Konversi ke string, ambil 5 digit angka pertama saja (abaikan titik/koma)
-  let str = val.toString().replace('.', '');
-  str = str.substring(0, 5);
+  const rounded = Math.round(val);
 
-  // Format balik biar ada koma ribuan (contoh: 14689 -> 14,689)
-  // Kita bagi logic-nya supaya kalau digitnya kurang dari 5, tetep rapi
-  const formatted = parseInt(str).toLocaleString('en-US');
-
-  return `${formatted}${unit}`;
+  return `${rounded.toLocaleString('en-US')}${unit}`;
 };
