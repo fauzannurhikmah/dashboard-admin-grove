@@ -12,10 +12,14 @@ export default function TableFilters({
     handleResetFilters,
     activeFiltersCount
 }) {
+    // Cek apakah filter ini aktif untuk halaman terkait
+    const showPeriodFilter = selectedPeriod !== undefined && setSelectedPeriod !== undefined
+    const showSectorFilter = selectedSector !== undefined && setSelectedSector !== undefined
+
     return (
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#09090b] border border-zinc-900 rounded-xl p-3.5">
-
             <div className="flex flex-1 flex-col md:flex-row items-stretch md:items-center gap-3">
+                {/* Search selalu muncul */}
                 <div className="relative w-full max-w-md">
                     <input
                         type="text"
@@ -28,7 +32,6 @@ export default function TableFilters({
                         placeholder="Filter by company name or profile details..."
                     />
                     <Search className="w-3.5 h-3.5 text-zinc-600 absolute left-3 top-2.5" />
-
                     {searchInput && (
                         <button
                             type="button"
@@ -40,56 +43,48 @@ export default function TableFilters({
                     )}
                 </div>
 
-                <div className="relative min-w-[160px]">
-                    <select
-                        value={selectedPeriod}
-                        onChange={(e) => {
-                            setSelectedPeriod(e.target.value)
-                            setPage(1)
-                        }}
-                        className="w-full pl-8 pr-8 py-1.5 bg-[#0c0c0e] border border-zinc-900 rounded-lg text-zinc-300 text-xs focus:outline-none focus:border-zinc-700 transition-colors appearance-none cursor-pointer"
-                    >
-                        <option value="">All Periods</option>
-                        <option value="ANNUAL">ANNUAL</option>
-                        <option value="Q1">Q1 (Quarter 1)</option>
-                        <option value="Q2">Q2 (Quarter 2)</option>
-                        <option value="Q3">Q3 (Quarter 3)</option>
-                        <option value="Q4">Q4 (Quarter 4)</option>
-                        <option value="TTM">TTM (Trailing 12M)</option>
-                    </select>
-                    <Filter className="w-3.5 h-3.5 text-zinc-600 absolute left-3 top-2.5 pointer-events-none" />
-
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-2.5 pointer-events-none text-zinc-600">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
+                {/* Filter Period (Opsional) */}
+                {showPeriodFilter && (
+                    <div className="relative min-w-[160px]">
+                        <select
+                            value={selectedPeriod}
+                            onChange={(e) => {
+                                setSelectedPeriod(e.target.value)
+                                setPage(1)
+                            }}
+                            className="w-full pl-8 pr-8 py-1.5 bg-[#0c0c0e] border border-zinc-900 rounded-lg text-zinc-300 text-xs focus:outline-none focus:border-zinc-700 transition-colors appearance-none cursor-pointer"
+                        >
+                            <option value="">All Periods</option>
+                            <option value="ANNUAL">ANNUAL</option>
+                            <option value="Q1">Q1 (Quarter 1)</option>
+                            <option value="Q2">Q2 (Quarter 2)</option>
+                            <option value="Q3">Q3 (Quarter 3)</option>
+                            <option value="Q4">Q4 (Quarter 4)</option>
+                            <option value="TTM">TTM (Trailing 12M)</option>
+                        </select>
+                        <Filter className="w-3.5 h-3.5 text-zinc-600 absolute left-3 top-2.5 pointer-events-none" />
                     </div>
-                </div>
+                )}
 
-                <div className="relative min-w-[180px]">
-                    <select
-                        value={selectedSector}
-                        onChange={(e) => {
-                            setSelectedSector(e.target.value)
-                            setPage(1)
-                        }}
-                        className="w-full pl-8 pr-8 py-1.5 bg-[#0c0c0e] border border-zinc-900 rounded-lg text-zinc-300 text-xs focus:outline-none focus:border-zinc-700 transition-colors appearance-none cursor-pointer truncate"
-                    >
-                        <option value="">All Sectors</option>
-                        {sectors.map((sector) => (
-                            <option key={sector.id} value={sector.id}>
-                                {sector.name}
-                            </option>
-                        ))}
-                    </select>
-                    <LayoutGrid className="w-3.5 h-3.5 text-zinc-600 absolute left-3 top-2.5 pointer-events-none" />
-
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-2.5 pointer-events-none text-zinc-600">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
+                {/* Filter Sector (Opsional) */}
+                {showSectorFilter && (
+                    <div className="relative min-w-[180px]">
+                        <select
+                            value={selectedSector}
+                            onChange={(e) => {
+                                setSelectedSector(e.target.value)
+                                setPage(1)
+                            }}
+                            className="w-full pl-8 pr-8 py-1.5 bg-[#0c0c0e] border border-zinc-900 rounded-lg text-zinc-300 text-xs focus:outline-none focus:border-zinc-700 transition-colors appearance-none cursor-pointer truncate"
+                        >
+                            <option value="">All Sectors</option>
+                            {sectors.map((sector) => (
+                                <option key={sector.id} value={sector.id}>{sector.name}</option>
+                            ))}
+                        </select>
+                        <LayoutGrid className="w-3.5 h-3.5 text-zinc-600 absolute left-3 top-2.5 pointer-events-none" />
                     </div>
-                </div>
+                )}
             </div>
 
             {activeFiltersCount > 0 && (
@@ -106,7 +101,6 @@ export default function TableFilters({
                     </button>
                 </div>
             )}
-
         </div>
     )
 }

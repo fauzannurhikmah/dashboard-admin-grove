@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Save, BarChart3, Search } from 'lucide-react'
-import { useFormStore } from '../../store/useFormStore'
+import { useFormStore } from '@/store/useFormStore'
 
 export default function ListingForm() {
   const navigate = useNavigate()
