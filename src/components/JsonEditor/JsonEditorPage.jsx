@@ -73,9 +73,9 @@ export default function JsonEditorPage() {
 
     setJsonData(prev => ({
       ...prev,
-      incomeStatements: prev.incomeStatements.map(item => ({ ...item, companyId: company.id })),
-      balanceSheets: prev.balanceSheets.map(item => ({ ...item, companyId: company.id })),
-      cashFlows: prev.cashFlows.map(item => ({ ...item, companyId: company.id }))
+      incomeStatements: (prev.incomeStatements || []).map(item => ({ ...item, companyId: company.id })),
+      balanceSheets: (prev.balanceSheets || []).map(item => ({ ...item, companyId: company.id })),
+      cashFlows: (prev.cashFlows || []).map(item => ({ ...item, companyId: company.id }))
     }))
   }
 
@@ -89,14 +89,14 @@ export default function JsonEditorPage() {
 
     setJsonData(prev => ({
       ...prev,
-      [type]: [...prev[type], blueprint]
+      [type]: [...(prev[type] || []), blueprint]
     }))
   }
 
   const removeItem = (type, index) => {
     setJsonData(prev => ({
       ...prev,
-      [type]: prev[type].filter((_, i) => i !== index)
+      [type]: (prev[type] || []).filter((_, i) => i !== index)
     }))
   }
 
@@ -121,15 +121,15 @@ export default function JsonEditorPage() {
 
     const mutations = []
 
-    if (jsonData.incomeStatements?.length > 0) {
+    if ((jsonData.incomeStatements || []).length > 0) {
       mutations.push(upsertIncomeStatement.mutateAsync(jsonData.incomeStatements))
     }
 
-    if (jsonData.balanceSheets?.length > 0) {
+    if ((jsonData.balanceSheets || []).length > 0) {
       mutations.push(upsertBalanceSheet.mutateAsync(jsonData.balanceSheets))
     }
 
-    if (jsonData.cashFlows?.length > 0) {
+    if ((jsonData.cashFlows || []).length > 0) {
       mutations.push(upsertCashFlow.mutateAsync(jsonData.cashFlows))
     }
 
@@ -150,7 +150,7 @@ export default function JsonEditorPage() {
   }
 
   const renderItemList = (type, title, icon) => {
-    const items = jsonData[type]
+    const items = jsonData[type] || []
     const Icon = icon
 
     return (
@@ -195,6 +195,16 @@ export default function JsonEditorPage() {
     )
   }
 
+  const handleClearAll = () => {
+    setJsonData({
+      incomeStatements: [],
+      balanceSheets: [],
+      cashFlows: []
+    })
+    setSelectedCompany(null)
+    setCompanyQuery('')
+  }
+
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto animate-fade-in text-sm text-zinc-200">
       <div className="flex items-end justify-between border-b border-zinc-900 pb-5">
@@ -206,6 +216,14 @@ export default function JsonEditorPage() {
             Edit and submit financial statements in JSON format
           </p>
         </div>
+        <button
+          type="button"
+          onClick={handleClearAll}
+          className="flex items-center gap-2 px-3 py-2 bg-red-950/20 border border-red-900/30 text-red-400 hover:bg-red-950/30 rounded-lg text-xs font-medium transition-all"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          <span>Clear All</span>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -314,9 +332,9 @@ export default function JsonEditorPage() {
             <div className="p-3 border-b border-zinc-900 bg-[#0c0c0e] flex items-center justify-between">
               <span className="text-xs font-medium text-zinc-400">JSON Editor</span>
               <div className="flex items-center gap-4 text-xs text-zinc-500">
-                <span>Income: {jsonData.incomeStatements.length}</span>
-                <span>Balance: {jsonData.balanceSheets.length}</span>
-                <span>Cash Flow: {jsonData.cashFlows.length}</span>
+                <span>Income: {(jsonData.incomeStatements || []).length}</span>
+                <span>Balance: {(jsonData.balanceSheets || []).length}</span>
+                <span>Cash Flow: {(jsonData.cashFlows || []).length}</span>
               </div>
             </div>
             <textarea
