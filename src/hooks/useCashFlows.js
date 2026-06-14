@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import axiosClient from '../api/axiosClient'
 
 export function useGetCashFlows(page = 1, pageSize = 20, keyword = '', period = '', sectorId = '') {
@@ -29,5 +29,18 @@ export function useGetCashFlowDetail(id) {
         },
         enabled: !!id,
         staleTime: 0,
+    })
+}
+
+export function useUpsertCashFlow() {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: async (payload) => {
+            const response = await axiosClient.post('/admin/cash-flow-statements/upsert', payload)
+            return response.data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['admin-cash-flows'] })
+        }
     })
 }

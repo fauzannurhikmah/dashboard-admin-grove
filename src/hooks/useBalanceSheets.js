@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import axiosClient from '../api/axiosClient'
 
 export function useGetBalanceSheets(page = 1, pageSize = 20, keyword = '', period = '', sectorId = '') {
@@ -29,5 +29,18 @@ export function useGetBalanceSheetDetail(id) {
         },
         enabled: !!id,
         staleTime: 0,
+    })
+}
+
+export function useUpsertBalanceSheet() {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: async (payload) => {
+            const response = await axiosClient.post('/admin/balance-sheets/upsert', payload)
+            return response.data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['admin-balance-sheets'] })
+        }
     })
 }

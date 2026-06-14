@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import {
-  Building2, List, TrendingUp, Wallet, DollarSign, BarChart3, LogOut, Menu, X, Code2
+  Building2, List, TrendingUp, Wallet, DollarSign, BarChart3, LogOut, Menu, X, Code2, FileJson
 } from 'lucide-react'
 import Toast from '@/components/dashboard/Toast'
 import { useFormStore } from '@/store/useFormStore'
@@ -20,6 +20,7 @@ import BalanceSheetList from '../components/balance-sheet/BalanceSheetList'
 import BalanceSheetForm from '../components/balance-sheet/BalanceSheetForm'
 import CashFlowList from '../components/cash-flow/CashFlowList'
 import CashFlowForm from '../components/cash-flow/CashFlowForm'
+import JsonEditorPage from '../components/JsonEditor/JsonEditorPage'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -54,7 +55,8 @@ export default function Dashboard() {
     { path: '/dashboard/listings', label: 'Listing', icon: List },
     { path: '/dashboard/income-statements', label: 'Income Statement', icon: TrendingUp },
     { path: '/dashboard/balance-sheets', label: 'Balance Sheet', icon: Wallet },
-    { path: '/dashboard/cash-flows', label: 'Cash Flow', icon: DollarSign }
+    { path: '/dashboard/cash-flows', label: 'Cash Flow', icon: DollarSign },
+    { path: '/dashboard/json-editor', label: 'JSON Editor', icon: FileJson }
   ]
 
   return (
@@ -161,6 +163,9 @@ export default function Dashboard() {
                 <Route path="/cash-flows" element={<CashFlowList />} />
                 <Route path="/cash-flows/create" element={<CashFlowForm />} />
                 <Route path="/cash-flows/:id/edit" element={<CashFlowForm />} />
+
+                {/* Modul JSON Editor */}
+                <Route path="/json-editor" element={<JsonEditorPage />} />
               </Routes>
             </main>
 

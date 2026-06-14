@@ -71,3 +71,16 @@ export function useGetIncomeStatementDetail(id) {
         staleTime: 5 * 60 * 1000,
     })
 }
+
+export function useUpsertIncomeStatement() {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: async (payload) => {
+            const response = await axiosClient.post('/admin/income-statements/upsert', payload)
+            return response.data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['admin-income-statements'] })
+        }
+    })
+}
