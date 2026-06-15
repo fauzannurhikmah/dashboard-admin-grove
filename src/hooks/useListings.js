@@ -43,15 +43,18 @@ export function useGetStockPrices(symbol, before) {
     })
 }
 
-export function useSyncStockPrice(id) {
+export function useSyncStockPrice(id, symbol) {
     const queryClient = useQueryClient()
     return useMutation({
         mutationFn: async () => {
-            const response = await axiosClient.post(`/admin/listings/${id}/sync-price`)
+            const response = await axiosClient.post(`/admin/stock-prices/sync`, undefined, {
+                params: { listingId: id }
+            })
             return response.data
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['admin-listings'] })
+            queryClient.invalidateQueries({ queryKey: ['stock-prices', symbol] })
         }
     })
 }
