@@ -10,5 +10,5 @@ cmds = ["npm run build"]
 [start]
 cmd = "npm run preview"
 
-[providers.env]
-PORT = "8080"
+[variables]
+PORT = "3000"
