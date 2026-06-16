@@ -95,3 +95,22 @@ export function useUpsertIncomeStatement() {
         }
     })
 }
+
+export function useSyncIncomeStatements(listingId, companyId) {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: async () => {
+            const response = await axiosClient.post(
+                '/admin/income-statements/sync',
+                { listingId },
+                { timeout: 300000 }
+            )
+            return response.data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['admin-income-statements'] })
+            queryClient.invalidateQueries({ queryKey: ['admin-income-statements', 'company', companyId] })
+            queryClient.invalidateQueries({ queryKey: ['admin-listings'] })
+        }
+    })
+}
