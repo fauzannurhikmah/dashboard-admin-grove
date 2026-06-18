@@ -211,11 +211,11 @@ export default function ListingDetail() {
     `;
 
   const mainTabs = [
-    { id: "stream", label: "Stream" },
+    // { id: "stream", label: "Stream" },
     { id: "keystat", label: "Key Stat" },
-    { id: "analysis", label: "Analysis" },
+    // { id: "analysis", label: "Analysis" },
     { id: "financials", label: "Financials" },
-    { id: "insider", label: "Insider" },
+    // { id: "insider", label: "Insider" },
     { id: "corpaction", label: "Corp Action" },
     { id: "profile", label: "Profile" },
   ];
