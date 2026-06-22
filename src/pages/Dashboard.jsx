@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import {
-  Building2, List, TrendingUp, Wallet, DollarSign, BarChart3, LogOut, Menu, X, Code2, FileJson
+  Building2, List, TrendingUp, Wallet, DollarSign, BarChart3, LogOut, Menu, X, Code2, FileJson, Sparkles
 } from 'lucide-react'
 import Toast from '@/components/dashboard/Toast'
 import { useFormStore } from '@/store/useFormStore'
@@ -22,6 +22,7 @@ import CashFlowList from '../components/cash-flow/CashFlowList'
 import CashFlowForm from '../components/cash-flow/CashFlowForm'
 import JsonEditorPage from '../components/JsonEditor/JsonEditorPage'
 import ListingDetail from '@/components/listing/ListingDetail'
+import GroveScore from './GroveScore'
 import { GroveLogo } from '@/components/ui/GroveLogo'
 
 export default function Dashboard() {
@@ -53,6 +54,7 @@ export default function Dashboard() {
   const currentRecordId = location.pathname.match(/\/dashboard\/[^/]+\/([^/]+)\/edit$/)?.[1] || null
 
   const menuItems = [
+    { path: '/dashboard/grove-score', label: 'Grove Score', icon: Sparkles },
     { path: '/dashboard/companies', label: 'Company', icon: Building2 },
     { path: '/dashboard/listings', label: 'Listing', icon: List },
     { path: '/dashboard/income-statements', label: 'Income Statement', icon: TrendingUp },
@@ -137,7 +139,10 @@ export default function Dashboard() {
           <div className="flex-1 flex overflow-hidden">
             <main className="flex-1 overflow-y-auto p-6 bg-[#09090b]">
               <Routes>
-                <Route path="/" element={<Navigate to="/dashboard/companies" replace />} />
+                <Route path="/" element={<Navigate to="/dashboard/grove-score" replace />} />
+
+                {/* Modul Grove Score */}
+                <Route path="/grove-score" element={<GroveScore />} />
 
                 {/* Modul Company */}
                 <Route path="/companies" element={<CompanyList />} />
