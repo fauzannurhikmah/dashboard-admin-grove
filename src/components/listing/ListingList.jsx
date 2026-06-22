@@ -4,6 +4,7 @@ import { Plus, Edit, Trash2, BarChart3, Eye, RefreshCw } from 'lucide-react'
 import { useGetListings } from '@/hooks/useListings'
 import { useGetSectors } from '@/hooks/useSectors'
 import { useSyncIncomeStatementsBySector } from '@/hooks/useIncomeStatements'
+import { useSyncBalanceSheetsBySector } from '@/hooks/useBalanceSheets'
 import TableFilters from '@/components/dashboard/TableFilters'
 import Pagination from '@/components/dashboard/Pagination'
 import { useFormStore } from '@/store/useFormStore'
@@ -38,6 +39,7 @@ export default function ListingList() {
   )
 
   const syncIncomeStatementMutation = useSyncIncomeStatementsBySector()
+  const syncBalanceSheetMutation = useSyncBalanceSheetsBySector()
 
   const handleSyncIncomeStatements = () => {
     syncIncomeStatementMutation.mutate(selectedSector, {
@@ -47,6 +49,18 @@ export default function ListingList() {
       },
       onError: (err) => {
         showToast(err.response?.data?.message || 'Failed to sync income statements', 'error')
+      }
+    })
+  }
+
+  const handleSyncBalanceSheets = () => {
+    syncBalanceSheetMutation.mutate(selectedSector, {
+      onSuccess: async () => {
+        await refetch()
+        showToast('Balance sheets synchronized successfully for selected sector', 'success')
+      },
+      onError: (err) => {
+        showToast(err.response?.data?.message || 'Failed to sync balance sheets', 'error')
       }
     })
   }
@@ -75,6 +89,24 @@ export default function ListingList() {
           <p className="text-zinc-500 text-xs mt-1.5">Manage public exchange tickers and security codes.</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleSyncBalanceSheets}
+            disabled={!selectedSector || syncBalanceSheetMutation.isPending}
+            className={`
+              relative inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border px-4 py-2
+              text-xs font-semibold whitespace-nowrap overflow-hidden transition-all duration-300
+              ${(!selectedSector || syncBalanceSheetMutation.isPending)
+                ? 'bg-zinc-900/50 border-zinc-800 text-zinc-500 cursor-not-allowed'
+                : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:border-emerald-500/40 hover:bg-emerald-500/5 hover:text-emerald-400'
+              }
+            `}
+          >
+            {syncBalanceSheetMutation.isPending && (
+              <span className="absolute inset-0 -translate-x-full animate-[shimmer_1.2s_infinite] bg-gradient-to-r from-transparent via-emerald-500/10 to-transparent" />
+            )}
+            <RefreshCw className={`h-3.5 w-3.5 ${syncBalanceSheetMutation.isPending ? 'animate-spin text-emerald-500/40' : ''}`} />
+            {syncBalanceSheetMutation.isPending ? 'Syncing...' : 'Sync Balance Sheet'}
+          </button>
           <button
             onClick={handleSyncIncomeStatements}
             disabled={!selectedSector || syncIncomeStatementMutation.isPending}

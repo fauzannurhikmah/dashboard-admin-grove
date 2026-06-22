@@ -44,3 +44,39 @@ export function useUpsertBalanceSheet() {
         }
     })
 }
+
+export function useSyncBalanceSheets(listingId, sectorId) {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: async () => {
+            const response = await axiosClient.post(
+                '/admin/balance-sheets/sync',
+                { listingId, sectorId },
+                { timeout: 300000 }
+            )
+            return response.data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['admin-balance-sheets'] })
+            queryClient.invalidateQueries({ queryKey: ['admin-listings'] })
+        }
+    })
+}
+
+export function useSyncBalanceSheetsBySector() {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: async (sectorId) => {
+            const response = await axiosClient.post(
+                '/admin/balance-sheets/sync',
+                { sectorId },
+                { timeout: 3600000 }
+            )
+            return response.data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['admin-balance-sheets'] })
+            queryClient.invalidateQueries({ queryKey: ['admin-listings'] })
+        }
+    })
+}

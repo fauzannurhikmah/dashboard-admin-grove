@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, RefreshCw, LineChart, Database, BarChart3 } from 'lucide-react'
 import { useGetListingDetail, useSyncStockPrice } from '@/hooks/useListings'
 import { useGetIncomeStatementsByCompany, useSyncIncomeStatements } from '@/hooks/useIncomeStatements'
+import { useSyncBalanceSheets } from '@/hooks/useBalanceSheets'
 import { useFormStore } from '@/store/useFormStore'
 import { formatAbbreviated } from '@/utils/formatters'
 import StockChart from '../dashboard/StockChart'
@@ -20,9 +21,11 @@ export default function ListingDetail() {
         isFetching: isFetchingFinancials,
         refetch: refetchFinancials,
     } = useGetIncomeStatementsByCompany(listing?.company?.id)
+    const listingSectorId = listing?.sectorId || listing?.sector?.id || listing?.company?.sectorId || listing?.company?.sector?.id
 
     const syncPriceMutation = useSyncStockPrice(id, listing?.symbol)
     const syncIncomeStatementMutation = useSyncIncomeStatements(id, listing?.company?.id)
+    const syncBalanceSheetMutation = useSyncBalanceSheets(id, listingSectorId)
 
     const years = useMemo(() => {
         return [...new Set(financials.map((financial) => financial.fiscalYear))].sort((a, b) => b - a)
@@ -48,6 +51,13 @@ export default function ListingDetail() {
         })
     }
 
+    const handleSyncBalanceSheets = () => {
+        syncBalanceSheetMutation.mutate(null, {
+            onSuccess: () => showToast('Balance sheet synchronized successfully', 'success'),
+            onError: () => showToast('Failed to sync balance sheet', 'error'),
+        })
+    }
+
     if (isLoading || !listing) {
         return (
             <div className="p-10 text-center text-zinc-500 font-mono">Loading...</div>
@@ -56,6 +66,7 @@ export default function ListingDetail() {
 
     const isSyncingPrice = syncPriceMutation.isPending
     const isSyncingIncomeStatement = syncIncomeStatementMutation.isPending
+    const isSyncingBalanceSheet = syncBalanceSheetMutation.isPending
     const isFinancialOverviewLoading = isSyncingIncomeStatement || isFetchingFinancials
     const actionButtonClassName = (isSyncing) => `
         relative inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border px-4 py-2
@@ -89,6 +100,18 @@ export default function ListingDetail() {
                 </div>
 
                 <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
+                    <button
+                        onClick={handleSyncBalanceSheets}
+                        disabled={isSyncingBalanceSheet}
+                        className={actionButtonClassName(isSyncingBalanceSheet)}
+                    >
+                        {isSyncingBalanceSheet && (
+                            <span className="absolute inset-0 -translate-x-full animate-[shimmer_1.2s_infinite] bg-gradient-to-r from-transparent via-emerald-500/10 to-transparent" />
+                        )}
+                        <RefreshCw className={`h-3.5 w-3.5 ${isSyncingBalanceSheet ? 'animate-spin text-emerald-500/40' : ''}`} />
+                        {isSyncingBalanceSheet ? 'Syncing...' : 'Sync Balance Sheet'}
+                    </button>
+
                     <button
                         onClick={handleSyncIncomeStatements}
                         disabled={isSyncingIncomeStatement}
