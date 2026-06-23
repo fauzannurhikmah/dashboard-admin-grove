@@ -203,7 +203,7 @@ export default function ListingDetail() {
 
                                                 return (
                                                     <td key={year} className="whitespace-nowrap px-6 py-3 text-right text-zinc-200">
-                                                        {value ? formatAbbreviated(value) : '-'}
+                                                        {value ? (activeTab === 'EPS' ? value : formatAbbreviated(value)) : '-'}  
                                                     </td>
                                                 )
                                             })}
