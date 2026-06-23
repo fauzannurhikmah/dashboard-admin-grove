@@ -122,7 +122,8 @@ export function useSyncIncomeStatementsBySector() {
             const response = await axiosClient.post(
                 '/admin/income-statements/sync',
                 { sectorId },
-                { timeout: 3600000 }
+                // timeout 10800000 ms = 3 hours
+                { timeout: 10800000 }
             )
             return response.data
         },

@@ -70,7 +70,9 @@ export function useSyncBalanceSheetsBySector() {
             const response = await axiosClient.post(
                 '/admin/balance-sheets/sync',
                 { sectorId },
-                { timeout: 3600000 }
+                // timeout 10800000 ms = 3 hours
+                { timeout: 10800000 }
+        
             )
             return response.data
         },
