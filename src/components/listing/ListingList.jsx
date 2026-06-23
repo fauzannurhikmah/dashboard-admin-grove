@@ -7,6 +7,7 @@ import { useSyncIncomeStatementsBySector } from '@/hooks/useIncomeStatements'
 import { useSyncBalanceSheetsBySector } from '@/hooks/useBalanceSheets'
 import TableFilters from '@/components/dashboard/TableFilters'
 import Pagination from '@/components/dashboard/Pagination'
+import ActionMenu from '@/components/ui/ActionMenu'
 import { useFormStore } from '@/store/useFormStore'
 
 export default function ListingList() {
@@ -89,42 +90,28 @@ export default function ListingList() {
           <p className="text-zinc-500 text-xs mt-1.5">Manage public exchange tickers and security codes.</p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleSyncBalanceSheets}
-            disabled={!selectedSector || syncBalanceSheetMutation.isPending}
-            className={`
-              relative inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border px-4 py-2
-              text-xs font-semibold whitespace-nowrap overflow-hidden transition-all duration-300
-              ${(!selectedSector || syncBalanceSheetMutation.isPending)
-                ? 'bg-zinc-900/50 border-zinc-800 text-zinc-500 cursor-not-allowed'
-                : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:border-emerald-500/40 hover:bg-emerald-500/5 hover:text-emerald-400'
-              }
-            `}
-          >
-            {syncBalanceSheetMutation.isPending && (
-              <span className="absolute inset-0 -translate-x-full animate-[shimmer_1.2s_infinite] bg-gradient-to-r from-transparent via-emerald-500/10 to-transparent" />
-            )}
-            <RefreshCw className={`h-3.5 w-3.5 ${syncBalanceSheetMutation.isPending ? 'animate-spin text-emerald-500/40' : ''}`} />
-            {syncBalanceSheetMutation.isPending ? 'Syncing...' : 'Sync Balance Sheet'}
-          </button>
-          <button
-            onClick={handleSyncIncomeStatements}
-            disabled={!selectedSector || syncIncomeStatementMutation.isPending}
-            className={`
-              relative inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border px-4 py-2
-              text-xs font-semibold whitespace-nowrap overflow-hidden transition-all duration-300
-              ${(!selectedSector || syncIncomeStatementMutation.isPending)
-                ? 'bg-zinc-900/50 border-zinc-800 text-zinc-500 cursor-not-allowed'
-                : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:border-emerald-500/40 hover:bg-emerald-500/5 hover:text-emerald-400'
-              }
-            `}
-          >
-            {syncIncomeStatementMutation.isPending && (
-              <span className="absolute inset-0 -translate-x-full animate-[shimmer_1.2s_infinite] bg-gradient-to-r from-transparent via-emerald-500/10 to-transparent" />
-            )}
-            <RefreshCw className={`h-3.5 w-3.5 ${syncIncomeStatementMutation.isPending ? 'animate-spin text-emerald-500/40' : ''}`} />
-            {syncIncomeStatementMutation.isPending ? 'Syncing...' : 'Sync Income Statement'}
-          </button>
+          <ActionMenu
+            label="Sync Financials"
+            disabled={!selectedSector}
+            items={[
+              {
+                label: 'Sync Income Statement',
+                description: 'Refresh sector-wide income statement data.',
+                pendingLabel: 'Syncing income statements...',
+                isPending: syncIncomeStatementMutation.isPending,
+                icon: <RefreshCw className="h-3.5 w-3.5" />,
+                onClick: handleSyncIncomeStatements,
+              },
+              {
+                label: 'Sync Balance Sheet',
+                description: 'Refresh sector-wide balance sheet data.',
+                pendingLabel: 'Syncing balance sheets...',
+                isPending: syncBalanceSheetMutation.isPending,
+                icon: <RefreshCw className="h-3.5 w-3.5" />,
+                onClick: handleSyncBalanceSheets,
+              },
+            ]}
+          />
           <button
             onClick={() => navigate('/dashboard/listings/create')}
             className="flex items-center gap-2 px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-950 font-medium text-xs rounded-lg transition-all"
@@ -203,7 +190,6 @@ export default function ListingList() {
                       </td>
                       <td className="px-5 py-4 text-right">
                         <div className="flex items-center justify-end gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
-                          {/* Tombol Detail navigasi ke halaman baru */}
                           <button
                             onClick={() => navigate(`/dashboard/listings/${listing.id}/detail`)}
                             className="p-1.5 rounded-md text-zinc-500 hover:text-emerald-400 hover:bg-zinc-900 transition-colors"

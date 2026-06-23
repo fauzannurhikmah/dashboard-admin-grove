@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+﻿import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, RefreshCw, LineChart, Database, BarChart3 } from 'lucide-react'
 import { useGetListingDetail, useSyncStockPrice } from '@/hooks/useListings'
@@ -6,6 +6,7 @@ import { useGetIncomeStatementsByCompany, useSyncIncomeStatements } from '@/hook
 import { useSyncBalanceSheets } from '@/hooks/useBalanceSheets'
 import { useFormStore } from '@/store/useFormStore'
 import { formatAbbreviated } from '@/utils/formatters'
+import ActionMenu from '@/components/ui/ActionMenu'
 import StockChart from '../dashboard/StockChart'
 
 export default function ListingDetail() {
@@ -100,29 +101,27 @@ export default function ListingDetail() {
                 </div>
 
                 <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
-                    <button
-                        onClick={handleSyncBalanceSheets}
-                        disabled={isSyncingBalanceSheet}
-                        className={actionButtonClassName(isSyncingBalanceSheet)}
-                    >
-                        {isSyncingBalanceSheet && (
-                            <span className="absolute inset-0 -translate-x-full animate-[shimmer_1.2s_infinite] bg-gradient-to-r from-transparent via-emerald-500/10 to-transparent" />
-                        )}
-                        <RefreshCw className={`h-3.5 w-3.5 ${isSyncingBalanceSheet ? 'animate-spin text-emerald-500/40' : ''}`} />
-                        {isSyncingBalanceSheet ? 'Syncing...' : 'Sync Balance Sheet'}
-                    </button>
-
-                    <button
-                        onClick={handleSyncIncomeStatements}
-                        disabled={isSyncingIncomeStatement}
-                        className={actionButtonClassName(isSyncingIncomeStatement)}
-                    >
-                        {isSyncingIncomeStatement && (
-                            <span className="absolute inset-0 -translate-x-full animate-[shimmer_1.2s_infinite] bg-gradient-to-r from-transparent via-emerald-500/10 to-transparent" />
-                        )}
-                        <RefreshCw className={`h-3.5 w-3.5 ${isSyncingIncomeStatement ? 'animate-spin text-emerald-500/40' : ''}`} />
-                        {isSyncingIncomeStatement ? 'Syncing...' : 'Sync Income Statement'}
-                    </button>
+                    <ActionMenu
+                        label="Sync Financials"
+                        items={[
+                            {
+                                label: 'Sync Income Statement',
+                                description: 'Refresh the latest income statement records.',
+                                pendingLabel: 'Syncing income statement...',
+                                isPending: isSyncingIncomeStatement,
+                                icon: <RefreshCw className="h-3.5 w-3.5" />,
+                                onClick: handleSyncIncomeStatements,
+                            },
+                            {
+                                label: 'Sync Balance Sheet',
+                                description: 'Refresh the latest balance sheet records.',
+                                pendingLabel: 'Syncing balance sheet...',
+                                isPending: isSyncingBalanceSheet,
+                                icon: <RefreshCw className="h-3.5 w-3.5" />,
+                                onClick: handleSyncBalanceSheets,
+                            },
+                        ]}
+                    />
 
                     <button
                         onClick={handleSyncPrice}
