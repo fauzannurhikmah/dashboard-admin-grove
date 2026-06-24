@@ -1,17 +1,7 @@
 import { useMemo } from 'react'
 import { X, Sparkles, BadgeInfo, Activity, Hash, CalendarRange, ShieldCheck } from 'lucide-react'
 import { useGetGroveFormulaDetail } from '@/hooks/useGroveFormulas'
-
-const formatDateTime = (value) => {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat('id-ID', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'Asia/Bangkok',
-  }).format(date)
-}
+import { formatDate } from '@/utils/formatters'
 
 export default function GroveFormulaDetail({ id, onClose }) {
   const { data, isLoading, isError, error } = useGetGroveFormulaDetail(id)
@@ -87,7 +77,7 @@ export default function GroveFormulaDetail({ id, onClose }) {
                     <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Formula</div>
                     <div className="flex items-center gap-2">
                       <span className="text-2xl font-black text-emerald-400 tracking-tight">
-                        {data?.formula?.code || '—'}
+                        {data?.formula?.code || '-'}
                       </span>
                       <span className={`text-[11px] font-semibold px-2 py-1 rounded-full border ${
                         data?.formula?.isActive
@@ -97,7 +87,7 @@ export default function GroveFormulaDetail({ id, onClose }) {
                         {data?.formula?.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </div>
-                    <div className="mt-1 text-sm text-zinc-200 font-medium">{data?.formula?.description || '—'}</div>
+                    <div className="mt-1 text-sm text-zinc-200 font-medium">{data?.formula?.description || '-'}</div>
                   </div>
                   <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/15 flex items-center justify-center text-emerald-400">
                     <BadgeInfo className="w-5 h-5" />
@@ -110,7 +100,7 @@ export default function GroveFormulaDetail({ id, onClose }) {
                       <Hash className="w-3 h-3" />
                       Formula ID
                     </div>
-                    <div className="font-mono text-zinc-300 mt-1 break-all">{data?.formula?.id || '—'}</div>
+                    <div className="font-mono text-zinc-300 mt-1 break-all">{data?.formula?.id || '-'}</div>
                   </div>
                   <div className="p-3 rounded-lg bg-[#09090b] border border-zinc-900">
                     <div className="text-zinc-500 flex items-center gap-1.5">
@@ -124,14 +114,14 @@ export default function GroveFormulaDetail({ id, onClose }) {
                       <CalendarRange className="w-3 h-3" />
                       Created
                     </div>
-                    <div className="font-mono text-zinc-300 mt-1 text-[11px] leading-relaxed">{formatDateTime(data?.formula?.createdAt)}</div>
+                    <div className="font-mono text-zinc-300 mt-1 text-[11px] leading-relaxed">{formatDate(data?.formula?.createdAt)}</div>
                   </div>
                   <div className="p-3 rounded-lg bg-[#09090b] border border-zinc-900">
                     <div className="text-zinc-500 flex items-center gap-1.5">
                       <CalendarRange className="w-3 h-3" />
                       Updated
                     </div>
-                    <div className="font-mono text-zinc-300 mt-1 text-[11px] leading-relaxed">{formatDateTime(data?.formula?.updatedAt)}</div>
+                    <div className="font-mono text-zinc-300 mt-1 text-[11px] leading-relaxed">{formatDate(data?.formula?.updatedAt)}</div>
                   </div>
                 </div>
               </div>
@@ -141,11 +131,11 @@ export default function GroveFormulaDetail({ id, onClose }) {
                 <div className="space-y-2 text-xs">
                   <div className="flex items-center justify-between py-2 border-b border-zinc-900/70">
                     <span className="text-zinc-500">Code</span>
-                    <span className="font-semibold text-zinc-200">{data?.formula?.code || '—'}</span>
+                    <span className="font-semibold text-zinc-200">{data?.formula?.code || '-'}</span>
                   </div>
                   <div className="flex items-center justify-between py-2 border-b border-zinc-900/70">
                     <span className="text-zinc-500">Description</span>
-                    <span className="font-semibold text-zinc-200 text-right max-w-[60%]">{data?.formula?.description || '—'}</span>
+                    <span className="font-semibold text-zinc-200 text-right max-w-[60%]">{data?.formula?.description || '-'}</span>
                   </div>
                   <div className="flex items-center justify-between py-2 border-b border-zinc-900/70">
                     <span className="text-zinc-500">Status</span>
@@ -193,11 +183,11 @@ export default function GroveFormulaDetail({ id, onClose }) {
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
                               <span>{rule.pillar}</span>
-                              <span className="text-zinc-700">•</span>
+                              <span className="text-zinc-700">-</span>
                               <span>{rule.metric}</span>
                             </div>
                             <p className="text-sm text-zinc-200 mt-1 leading-relaxed">{rule.description}</p>
-                            <p className="text-[10px] font-mono text-zinc-600 mt-2">{formatDateTime(rule.createdAt)}</p>
+                            <p className="text-[10px] font-mono text-zinc-600 mt-2">{formatDate(rule.createdAt)}</p>
                           </div>
                         </div>
                       ))}
