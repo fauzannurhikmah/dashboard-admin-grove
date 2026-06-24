@@ -13,8 +13,8 @@ import StockChart from '../dashboard/StockChart'
 
 const INCOME_STATEMENT_FIELDS = [
     { key: 'revenue', label: 'Revenue' },
-    { key: 'netIncome', label: 'Net Income' },
-    { key: 'eps', label: 'EPS (Quarterly)' },
+    { key: 'netIncome', label: 'Net Income (Pemilik Entitas Induk)' },
+    { key: 'eps', label: 'EPS (Quarter)' },
 ]
 
 
@@ -115,6 +115,19 @@ const getFullTooltipValue = (key, value, currency = 'IDR') => {
         }
     );
     return formatter.format(numValue);
+}
+
+const renderLabel = (label) => {
+    const match = label.match(/^(.*?)\s*(\(.*\))$/)
+    if (match) {
+        return (
+            <div className="flex flex-col leading-tight text-left">
+                <span>{match[1]}</span>
+                <span className="text-[10px] text-zinc-500 font-normal mt-0.5">{match[2]}</span>
+            </div>
+        )
+    }
+    return <span>{label}</span>
 }
 
 export default function ListingDetail() {
@@ -305,11 +318,10 @@ export default function ListingDetail() {
                             <button
                                 key={tab.id}
                                 onClick={() => setSelectedStatement(tab.id)}
-                                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all duration-300 ${
-                                    selectedStatement === tab.id
-                                        ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.08)]'
-                                        : 'text-zinc-500 border border-transparent hover:text-zinc-300 hover:bg-zinc-900/40'
-                                }`}
+                                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all duration-300 ${selectedStatement === tab.id
+                                    ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.08)]'
+                                    : 'text-zinc-500 border border-transparent hover:text-zinc-300 hover:bg-zinc-900/40'
+                                    }`}
                             >
                                 {tab.label}
                             </button>
@@ -329,7 +341,7 @@ export default function ListingDetail() {
                         <table className="w-full border-collapse text-xs font-mono text-zinc-400">
                             <thead>
                                 <tr className="border-b border-zinc-900 text-left text-zinc-500">
-                                    <th className="sticky left-0 z-10 w-48 bg-[#09090b] py-3 text-zinc-400 font-bold border-r border-zinc-900/40 pr-4">Line Item</th>
+                                    <th className="sticky left-0 z-10 bg-[#09090b] py-3 text-zinc-400 font-bold border-r border-zinc-900/40 pr-6 text-left whitespace-nowrap">Line Item</th>
                                     {sortedData.map((statement) => (
                                         <th key={statement.id} className="px-6 py-3 text-right font-bold text-zinc-400">
                                             <div className="text-xs font-semibold text-zinc-300">{statement.fiscalYear} {statement.period}</div>
@@ -340,8 +352,8 @@ export default function ListingDetail() {
                             <tbody>
                                 {activeFields.map((field) => (
                                     <tr key={field.key} className="border-b border-zinc-900/40 hover:bg-zinc-900/20 transition-colors duration-250 group">
-                                        <td className="sticky left-0 z-10 bg-[#09090b] py-3.5 pr-4 font-medium text-zinc-400 border-r border-zinc-900/40 transition-colors group-hover:text-zinc-200">
-                                            {field.label}
+                                        <td className="sticky left-0 z-10 bg-[#09090b] py-3.5 pr-6 font-medium text-zinc-400 border-r border-zinc-900/40 transition-colors group-hover:text-zinc-200 whitespace-nowrap">
+                                            {renderLabel(field.label)}
                                         </td>
                                         {sortedData.map((statement) => {
                                             const rawValue = statement[field.key];
@@ -355,13 +367,12 @@ export default function ListingDetail() {
                                             return (
                                                 <td
                                                     key={statement.id}
-                                                    className={`whitespace-nowrap px-6 py-3.5 text-right font-mono text-xs cursor-help transition-colors ${
-                                                        isZeroOrNull
-                                                            ? 'text-zinc-600'
-                                                            : isNegative
-                                                                ? 'text-rose-400/90 font-medium'
-                                                                : 'text-zinc-300 group-hover:text-zinc-100'
-                                                    }`}
+                                                    className={`whitespace-nowrap px-6 py-3.5 text-right font-mono text-xs cursor-help transition-colors ${isZeroOrNull
+                                                        ? 'text-zinc-600'
+                                                        : isNegative
+                                                            ? 'text-rose-400/90 font-medium'
+                                                            : 'text-zinc-300 group-hover:text-zinc-100'
+                                                        }`}
                                                     title={tooltip || undefined}
                                                 >
                                                     {formatted}
