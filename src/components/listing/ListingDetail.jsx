@@ -1,36 +1,154 @@
-﻿import { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, RefreshCw, LineChart, Database, BarChart3 } from 'lucide-react'
 import { useGetListingDetail, useSyncStockPrice } from '@/hooks/useListings'
 import { useGetIncomeStatementsByCompany, useSyncIncomeStatements } from '@/hooks/useIncomeStatements'
-import { useSyncBalanceSheets } from '@/hooks/useBalanceSheets'
+import { useGetBalanceSheetsByCompany, useSyncBalanceSheets } from '@/hooks/useBalanceSheets'
+import { useGetCashFlowsByCompany } from '@/hooks/useCashFlows'
 import { useFormStore } from '@/store/useFormStore'
-import { formatAbbreviated } from '@/utils/formatters'
+import { formatAbbreviated, formatCurrency } from '@/utils/formatters'
 import ActionMenu from '@/components/ui/ActionMenu'
 import StockChart from '../dashboard/StockChart'
+
+
+const INCOME_STATEMENT_FIELDS = [
+    { key: 'revenue', label: 'Revenue' },
+    { key: 'netIncome', label: 'Net Income' },
+    { key: 'eps', label: 'EPS (Quarterly)' },
+]
+
+
+const BALANCE_SHEET_FIELDS = [
+    // { key: 'cash', label: 'Total Cash' },
+    { key: 'totalAssets', label: 'Total Assets' },
+    { key: 'totalEquity', label: 'Total Equity' },
+    { key: 'totalLiabilities', label: 'Total Liabilities' },
+]
+
+const CASH_FLOW_FIELDS = [
+    { key: 'netIncomeStart', label: 'Net Income (Start)' },
+    { key: 'depreciationAmort', label: 'Depreciation & Amortization' },
+    { key: 'stockBasedCompensation', label: 'Stock Based Compensation' },
+    { key: 'changeInWorkingCapital', label: 'Change In Working Capital' },
+    { key: 'changeInReceivables', label: 'Change In Receivables' },
+    { key: 'changeInInventory', label: 'Change In Inventory' },
+    { key: 'changeInPayables', label: 'Change In Payables' },
+    { key: 'otherOperatingActivities', label: 'Other Operating Activities' },
+    { key: 'netCashFromOperations', label: 'Net Cash From Operations' },
+    { key: 'capitalExpenditures', label: 'Capital Expenditures' },
+    { key: 'acquisitions', label: 'Acquisitions' },
+    { key: 'purchaseOfInvestments', label: 'Purchase Of Investments' },
+    { key: 'saleOfInvestments', label: 'Sale Of Investments' },
+    { key: 'otherInvestingActivities', label: 'Other Investing Activities' },
+    { key: 'netCashFromInvesting', label: 'Net Cash From Investing' },
+    { key: 'debtIssuance', label: 'Debt Issuance' },
+    { key: 'debtRepayment', label: 'Debt Repayment' },
+    { key: 'commonStockIssuance', label: 'Common Stock Issuance' },
+    { key: 'commonStockRepurchase', label: 'Common Stock Repurchase' },
+    { key: 'dividendsPaid', label: 'Dividends Paid' },
+    { key: 'otherFinancingActivities', label: 'Other Financing Activities' },
+    { key: 'netCashFromFinancing', label: 'Net Cash From Financing' },
+    { key: 'netChangeInCash', label: 'Net Change In Cash' },
+    { key: 'cashBeginningPeriod', label: 'Cash Beginning Period' },
+    { key: 'cashEndPeriod', label: 'Cash End Period' },
+    { key: 'freeCashFlow', label: 'Free Cash Flow' },
+]
+
+const sortStatements = (statements) => {
+    if (!Array.isArray(statements)) return [];
+    return [...statements].sort((a, b) => {
+        if (a.fiscalYear !== b.fiscalYear) {
+            return b.fiscalYear - a.fiscalYear;
+        }
+        const periodOrder = { 'FY': 5, 'ANNUAL': 5, 'Q4': 4, 'Q3': 3, 'Q2': 2, 'Q1': 1 };
+        const orderA = periodOrder[a.period] || 0;
+        const orderB = periodOrder[b.period] || 0;
+        return orderB - orderA;
+    });
+}
+
+const formatFinancialValue = (key, value, currency = 'IDR') => {
+    if (value === null || value === undefined) return '-';
+
+    const numValue = Number(value);
+    if (isNaN(numValue)) return value;
+
+    if (key.toLowerCase().includes('growth') || key.toLowerCase().includes('rate')) {
+        return `${numValue.toFixed(2)}%`;
+    }
+
+    if (key === 'eps' || key === 'epsDiluted') {
+        return numValue.toFixed(2);
+    }
+
+    if (key === 'sharesWeightedAvg') {
+        return formatAbbreviated(value);
+    }
+
+    return formatAbbreviated(value);
+}
+
+const getFullTooltipValue = (key, value, currency = 'IDR') => {
+    if (value === null || value === undefined) return '';
+    const numValue = Number(value);
+    if (isNaN(numValue)) return String(value);
+
+    if (key.toLowerCase().includes('growth') || key.toLowerCase().includes('rate')) {
+        return `${numValue.toFixed(2)}%`;
+    }
+
+    if (key === 'eps' || key === 'epsDiluted') {
+        return numValue.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    if (key === 'sharesWeightedAvg') {
+        return numValue.toLocaleString('id-ID');
+    }
+
+    const formatter = new Intl.NumberFormat(
+        currency === 'IDR' ? 'id-ID' : 'en-US',
+        {
+            style: 'currency',
+            currency: currency,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }
+    );
+    return formatter.format(numValue);
+}
 
 export default function ListingDetail() {
     const { id } = useParams()
     const navigate = useNavigate()
     const showToast = useFormStore((state) => state.showToast)
-    const [activeTab, setActiveTab] = useState('Net Income')
+    const [selectedStatement, setSelectedStatement] = useState('income')
     const [chartKey, setChartKey] = useState(0)
 
     const { data: listing, isLoading } = useGetListingDetail(id)
+
     const {
-        data: financials = [],
-        isFetching: isFetchingFinancials,
-        refetch: refetchFinancials,
+        data: incomeStatements = [],
+        isFetching: isFetchingIncome,
+        refetch: refetchIncome,
     } = useGetIncomeStatementsByCompany(listing?.company?.id)
+
+    const {
+        data: balanceSheets = [],
+        isFetching: isFetchingBalance,
+        refetch: refetchBalance,
+    } = useGetBalanceSheetsByCompany(listing?.company?.id)
+
+    const {
+        data: cashFlows = [],
+        isFetching: isFetchingCashFlow,
+        refetch: refetchCashFlow,
+    } = useGetCashFlowsByCompany(listing?.company?.id)
+
     const listingSectorId = listing?.sectorId || listing?.sector?.id || listing?.company?.sectorId || listing?.company?.sector?.id
 
     const syncPriceMutation = useSyncStockPrice(id, listing?.symbol)
     const syncIncomeStatementMutation = useSyncIncomeStatements(id, listing?.company?.id)
     const syncBalanceSheetMutation = useSyncBalanceSheets(id, listingSectorId)
-
-    const years = useMemo(() => {
-        return [...new Set(financials.map((financial) => financial.fiscalYear))].sort((a, b) => b - a)
-    }, [financials])
 
     const handleSyncPrice = () => {
         syncPriceMutation.mutate(null, {
@@ -45,7 +163,7 @@ export default function ListingDetail() {
     const handleSyncIncomeStatements = () => {
         syncIncomeStatementMutation.mutate(null, {
             onSuccess: async () => {
-                await refetchFinancials()
+                await refetchIncome()
                 showToast('Income statement synchronized successfully', 'success')
             },
             onError: () => showToast('Failed to sync income statement', 'error'),
@@ -54,7 +172,10 @@ export default function ListingDetail() {
 
     const handleSyncBalanceSheets = () => {
         syncBalanceSheetMutation.mutate(null, {
-            onSuccess: () => showToast('Balance sheet synchronized successfully', 'success'),
+            onSuccess: async () => {
+                await refetchBalance()
+                showToast('Balance sheet synchronized successfully', 'success')
+            },
             onError: () => showToast('Failed to sync balance sheet', 'error'),
         })
     }
@@ -68,7 +189,30 @@ export default function ListingDetail() {
     const isSyncingPrice = syncPriceMutation.isPending
     const isSyncingIncomeStatement = syncIncomeStatementMutation.isPending
     const isSyncingBalanceSheet = syncBalanceSheetMutation.isPending
-    const isFinancialOverviewLoading = isSyncingIncomeStatement || isFetchingFinancials
+    const isFinancialOverviewLoading = isSyncingIncomeStatement || isSyncingBalanceSheet || isFetchingIncome || isFetchingBalance || isFetchingCashFlow
+
+    const activeStatements = (selectedStatement === 'income'
+        ? incomeStatements
+        : selectedStatement === 'balance'
+            ? balanceSheets
+            : cashFlows
+    ).filter((s) => s.period !== 'ANNUAL' && s.period !== 'FY')
+
+
+    const activeFields = selectedStatement === 'income'
+        ? INCOME_STATEMENT_FIELDS
+        : selectedStatement === 'balance'
+            ? BALANCE_SHEET_FIELDS
+            : CASH_FLOW_FIELDS
+
+    const sortedData = sortStatements(activeStatements)
+
+    const syncDescription = isSyncingIncomeStatement
+        ? 'Scraping latest income statement data...'
+        : isSyncingBalanceSheet
+            ? 'Scraping latest balance sheet data...'
+            : 'Refreshing synchronized results...'
+
     const actionButtonClassName = (isSyncing) => `
         relative inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border px-4 py-2
         text-xs font-semibold whitespace-nowrap overflow-hidden transition-all duration-300
@@ -77,6 +221,7 @@ export default function ListingDetail() {
             : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:border-emerald-500/40 hover:bg-emerald-500/5 hover:text-emerald-400'
         }
     `
+
 
     return (
         <div className="max-w-[1100px] mx-auto animate-fade-in pb-12 text-sm text-zinc-300">
@@ -145,110 +290,125 @@ export default function ListingDetail() {
                 <StockChart key={chartKey} symbol={listing.symbol} isSyncing={isSyncingPrice} />
             </div>
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                <div className="md:col-span-1">
-                    <div className="space-y-4 rounded-xl border border-zinc-900 bg-[#09090b] p-6">
-                        <div className="flex items-center gap-2">
-                            <Database className="h-4 w-4 text-zinc-400" />
-                            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-300">Key Statistics</h3>
-                        </div>
-                        <div className="space-y-3">
-                            <div className="flex justify-between border-b border-zinc-900 pb-2">
-                                <span className="text-xs text-zinc-500">Asset Type</span>
-                                <span className="text-xs font-mono text-zinc-200">{listing.assetType}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-xs text-zinc-500">Exchange</span>
-                                <span className="text-xs font-mono text-zinc-200">{listing.exchange?.code}</span>
-                            </div>
-                        </div>
+            <div className="relative rounded-xl border border-zinc-900 bg-[#09090b] p-6 shadow-xl">
+                <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                        <Database className="h-4.5 w-4.5 text-emerald-400 animate-pulse" />
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-300">Financial Reports</h3>
+                    </div>
+                    <div className="flex items-center gap-1 rounded-xl border border-zinc-800 bg-zinc-950 p-1 shadow-inner">
+                        {[
+                            { id: 'income', label: 'Income Statement' },
+                            { id: 'balance', label: 'Balance Sheet' },
+                            { id: 'cashflow', label: 'Cash Flow' }
+                        ].map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setSelectedStatement(tab.id)}
+                                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all duration-300 ${
+                                    selectedStatement === tab.id
+                                        ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.08)]'
+                                        : 'text-zinc-500 border border-transparent hover:text-zinc-300 hover:bg-zinc-900/40'
+                                }`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
-                <div className="md:col-span-2">
-                    <div className="relative rounded-xl border border-zinc-900 bg-[#09090b] p-6">
-                        <div className="mb-4 flex items-center justify-between">
-                            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-300">Financial Overview</h3>
-                            <div className="flex items-center gap-2 rounded-full border border-zinc-900 bg-zinc-900/50 p-1">
-                                {['Net Income', 'EPS', 'Revenue'].map((tab) => (
-                                    <button
-                                        key={tab}
-                                        onClick={() => setActiveTab(tab)}
-                                        className={`px-3 py-1 text-[10px] font-bold rounded-full transition-all ${activeTab === tab ? 'border border-emerald-500/30 bg-emerald-500/20 text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'}`}
-                                    >
-                                        {tab}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <div className={`overflow-x-auto pb-2 transition-opacity duration-300 ${isFinancialOverviewLoading ? 'opacity-30' : 'opacity-100'}`}>
-                            <table className="w-full border-collapse text-xs font-mono text-zinc-400">
-                                <thead>
-                                    <tr className="border-b border-zinc-900 text-left text-zinc-500">
-                                        <th className="sticky left-0 z-10 w-32 bg-[#09090b] py-3">Period</th>
-                                        {years.map((year) => <th key={year} className="px-6 py-3 text-right">{year}</th>)}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {['Q1', 'Q2', 'Q3', 'Q4'].map((quarter) => (
-                                        <tr key={quarter} className="border-b border-zinc-900/40">
-                                            <td className="sticky left-0 z-10 bg-[#09090b] py-3 font-medium text-zinc-300">{quarter}</td>
-                                            {years.map((year) => {
-                                                const data = financials.find((financial) => financial.fiscalYear === year && financial.period === quarter)
-                                                const value = activeTab === 'Net Income'
-                                                    ? data?.netIncome
-                                                    : activeTab === 'Revenue'
-                                                        ? data?.revenue
-                                                        : data?.eps
-
-                                                return (
-                                                    <td key={year} className="whitespace-nowrap px-6 py-3 text-right text-zinc-200">
-                                                        {value ? (activeTab === 'EPS' ? value : formatAbbreviated(value)) : '-'}  
-                                                    </td>
-                                                )
-                                            })}
-                                        </tr>
+                {sortedData.length === 0 ? (
+                    <div className="py-10 text-center text-zinc-500 font-mono text-xs">
+                        No financial data available. Use "Sync Financials" to import.
+                    </div>
+                ) : (
+                    <div
+                        key={selectedStatement}
+                        className={`overflow-x-auto pb-2 animate-fade-in transition-opacity duration-300 ${isFinancialOverviewLoading ? 'opacity-30' : 'opacity-100'}`}
+                    >
+                        <table className="w-full border-collapse text-xs font-mono text-zinc-400">
+                            <thead>
+                                <tr className="border-b border-zinc-900 text-left text-zinc-500">
+                                    <th className="sticky left-0 z-10 w-48 bg-[#09090b] py-3 text-zinc-400 font-bold border-r border-zinc-900/40 pr-4">Line Item</th>
+                                    {sortedData.map((statement) => (
+                                        <th key={statement.id} className="px-6 py-3 text-right font-bold text-zinc-400">
+                                            <div className="text-xs font-semibold text-zinc-300">{statement.fiscalYear} {statement.period}</div>
+                                        </th>
                                     ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {activeFields.map((field) => (
+                                    <tr key={field.key} className="border-b border-zinc-900/40 hover:bg-zinc-900/20 transition-colors duration-250 group">
+                                        <td className="sticky left-0 z-10 bg-[#09090b] py-3.5 pr-4 font-medium text-zinc-400 border-r border-zinc-900/40 transition-colors group-hover:text-zinc-200">
+                                            {field.label}
+                                        </td>
+                                        {sortedData.map((statement) => {
+                                            const rawValue = statement[field.key];
+                                            const formatted = formatFinancialValue(field.key, rawValue, statement.currency);
+                                            const tooltip = getFullTooltipValue(field.key, rawValue, statement.currency);
 
-                        {isFinancialOverviewLoading && (
-                            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-[#09090b]/78 backdrop-blur-sm">
-                                <div className="w-full max-w-md px-6">
-                                    <div className="rounded-2xl border border-emerald-500/10 bg-zinc-950/90 p-5 shadow-[0_0_40px_rgba(16,185,129,0.08)]">
-                                        <div className="mb-4 flex items-center gap-3">
-                                            <div className="relative flex h-10 w-10 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10">
-                                                <span className="absolute inset-0 rounded-full border border-emerald-400/30 animate-ping" />
-                                                <RefreshCw className="relative h-4 w-4 animate-spin text-emerald-400" />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-semibold text-zinc-100">Updating Financial Overview</p>
-                                                <p className="text-xs text-zinc-500">
-                                                    {isSyncingIncomeStatement ? 'Scraping latest income statement data...' : 'Refreshing synchronized results...'}
-                                                </p>
-                                            </div>
-                                        </div>
+                                            const numVal = Number(rawValue);
+                                            const isNegative = rawValue !== null && rawValue !== undefined && !isNaN(numVal) && numVal < 0;
+                                            const isZeroOrNull = rawValue === null || rawValue === undefined || (!isNaN(numVal) && numVal === 0);
 
-                                        <div className="mb-3 h-2 overflow-hidden rounded-full bg-zinc-900">
-                                            <div className="h-full w-1/2 rounded-full bg-gradient-to-r from-emerald-500/20 via-emerald-400 to-emerald-500/20 animate-[shimmer_1.4s_infinite]" />
-                                        </div>
+                                            return (
+                                                <td
+                                                    key={statement.id}
+                                                    className={`whitespace-nowrap px-6 py-3.5 text-right font-mono text-xs cursor-help transition-colors ${
+                                                        isZeroOrNull
+                                                            ? 'text-zinc-600'
+                                                            : isNegative
+                                                                ? 'text-rose-400/90 font-medium'
+                                                                : 'text-zinc-300 group-hover:text-zinc-100'
+                                                    }`}
+                                                    title={tooltip || undefined}
+                                                >
+                                                    {formatted}
+                                                </td>
+                                            )
+                                        })}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
 
-                                        <div className="grid grid-cols-3 gap-2">
-                                            {[...Array(3)].map((_, index) => (
-                                                <div key={index} className="space-y-2 rounded-xl border border-zinc-900 bg-zinc-900/80 p-3">
-                                                    <div className="h-2.5 w-16 animate-pulse rounded bg-zinc-800" />
-                                                    <div className="h-4 w-full animate-pulse rounded bg-zinc-800/90" />
-                                                    <div className="h-4 w-3/4 animate-pulse rounded bg-zinc-800/70" />
-                                                </div>
-                                            ))}
-                                        </div>
+                {isFinancialOverviewLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-[#09090b]/78 backdrop-blur-sm">
+                        <div className="w-full max-w-md px-6">
+                            <div className="rounded-2xl border border-emerald-500/10 bg-zinc-950/90 p-5 shadow-[0_0_40px_rgba(16,185,129,0.08)]">
+                                <div className="mb-4 flex items-center gap-3">
+                                    <div className="relative flex h-10 w-10 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10">
+                                        <span className="absolute inset-0 rounded-full border border-emerald-400/30 animate-ping" />
+                                        <RefreshCw className="relative h-4 w-4 animate-spin text-emerald-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-semibold text-zinc-100">Updating Financial Reports</p>
+                                        <p className="text-xs text-zinc-500">
+                                            {syncDescription}
+                                        </p>
                                     </div>
                                 </div>
+
+                                <div className="mb-3 h-2 overflow-hidden rounded-full bg-zinc-900">
+                                    <div className="h-full w-1/2 rounded-full bg-gradient-to-r from-emerald-500/20 via-emerald-400 to-emerald-500/20 animate-[shimmer_1.4s_infinite]" />
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-2">
+                                    {[...Array(3)].map((_, index) => (
+                                        <div key={index} className="space-y-2 rounded-xl border border-zinc-900 bg-zinc-900/80 p-3">
+                                            <div className="h-2.5 w-16 animate-pulse rounded bg-zinc-800" />
+                                            <div className="h-4 w-full animate-pulse rounded bg-zinc-800/90" />
+                                            <div className="h-4 w-3/4 animate-pulse rounded bg-zinc-800/70" />
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                        )}
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     )

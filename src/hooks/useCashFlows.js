@@ -44,3 +44,14 @@ export function useUpsertCashFlow() {
         }
     })
 }
+
+export function useGetCashFlowsByCompany(companyId) {
+    return useQuery({
+        queryKey: ['admin-cash-flows', 'company', companyId],
+        queryFn: async () => {
+            const response = await axiosClient.get(`/admin/cash-flow-statements/company/${companyId}`)
+            return response.data
+        },
+        enabled: !!companyId
+    })
+}

@@ -63,6 +63,17 @@ export function useSyncBalanceSheets(listingId, sectorId) {
     })
 }
 
+export function useGetBalanceSheetsByCompany(companyId) {
+    return useQuery({
+        queryKey: ['admin-balance-sheets', 'company', companyId],
+        queryFn: async () => {
+            const response = await axiosClient.get(`/admin/balance-sheets/company/${companyId}`)
+            return response.data
+        },
+        enabled: !!companyId
+    })
+}
+
 export function useSyncBalanceSheetsBySector() {
     const queryClient = useQueryClient()
     return useMutation({
