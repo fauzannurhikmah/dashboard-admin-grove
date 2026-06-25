@@ -27,6 +27,11 @@ export default function JsonEditorSidebar({ formKey, recordId }) {
                 return response.data
             }
 
+            if (formKey === 'cash-flows') {
+                const response = await axiosClient.post('/admin/cash-flow-statements/upsert', payload)
+                return response.data
+            }
+
             const endpoint = isEdit
                 ? (Array.isArray(payload) && formKey === 'income-statements'
                     ? `/admin/${formKey}/batch`

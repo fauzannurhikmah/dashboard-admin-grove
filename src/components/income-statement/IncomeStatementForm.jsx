@@ -29,7 +29,7 @@ export default function IncomeStatementForm() {
     fiscalYear: new Date().getFullYear(),
     fiscalQuarter: null,
     periodEndDate: '',
-    currency: 'USD',
+    currency: 'IDR',
     auditStatus: 'UNAUDITED',
     revenue: '',
     revenueGrowthYoY: '',

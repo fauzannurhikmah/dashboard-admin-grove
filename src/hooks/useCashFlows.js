@@ -20,6 +20,33 @@ export function useGetCashFlows(page = 1, pageSize = 20, keyword = '', period = 
     })
 }
 
+export function useCreateCashFlow() {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: async (payload) => {
+            const response = await axiosClient.post('/admin/cash-flow-statements', payload)
+            return response.data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['admin-cash-flows'] })
+        },
+    })
+}
+
+export function useUpdateCashFlow(id) {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: async (payload) => {
+            const response = await axiosClient.patch(`/admin/cash-flow-statements/${id}`, payload)
+            return response.data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['admin-cash-flows'] })
+            queryClient.invalidateQueries({ queryKey: ['admin-cash-flows', id] })
+        },
+    })
+}
+
 export function useGetCashFlowDetail(id) {
     return useQuery({
         queryKey: ['admin-cash-flows', id],
