@@ -10,7 +10,7 @@ export const formBlueprints = {
     },
     'income-statements': {
         companyId: '', period: 'ANNUAL', fiscalYear: new Date().getFullYear(), fiscalQuarter: null,
-        periodEndDate: '', currency: 'USD', auditStatus: 'UNAUDITED', revenue: 0, revenueGrowthYoY: null,
+        periodEndDate: '', currency: 'IDR', auditStatus: 'UNAUDITED', revenue: 0, revenueGrowthYoY: null,
         cogs: null, grossProfit: null, operatingExpenses: null, sellingExpenses: null, generalAdminExpenses: null,
         rdExpenses: null, depreciationAmort: null, ebit: null, ebitda: null, operatingIncome: null,
         interestExpense: null, interestIncome: null, otherNonOperatingIncome: null, pretaxIncome: null,
@@ -19,7 +19,7 @@ export const formBlueprints = {
     },
     'balance-sheets': {
         companyId: '', period: 'ANNUAL', fiscalYear: new Date().getFullYear(), fiscalQuarter: null,
-        periodEndDate: '', currency: 'USD', auditStatus: 'UNAUDITED', cash: null, shortTermInvestments: null,
+        periodEndDate: '', currency: 'IDR', auditStatus: 'UNAUDITED', cash: null, shortTermInvestments: null,
         accountsReceivable: null, inventory: null, otherCurrentAssets: null, totalCurrentAssets: null,
         propertyPlantEquipment: null, intangibleAssets: null, goodwill: null, longTermInvestments: null,
         otherNonCurrentAssets: null, totalNonCurrentAssets: null, totalAssets: 0, shortTermDebt: null,
@@ -31,7 +31,7 @@ export const formBlueprints = {
     },
     'cash-flows': {
         companyId: '', period: 'ANNUAL', fiscalYear: new Date().getFullYear(), fiscalQuarter: null,
-        periodEndDate: '', currency: 'USD', auditStatus: 'UNAUDITED', netIncomeStart: null, depreciationAmort: null,
+        periodEndDate: '', currency: 'IDR', auditStatus: 'UNAUDITED', netIncomeStart: null, depreciationAmort: null,
         stockBasedCompensation: null, changeInWorkingCapital: null, changeInReceivables: null, changeInInventory: null,
         changeInPayables: null, otherOperatingActivities: null, netCashFromOperations: 0, capitalExpenditures: null,
         acquisitions: null, purchaseOfInvestments: null, saleOfInvestments: null, otherInvestingActivities: null,

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Search, X, Plus, AlignLeft, Send, TrendingUp, Wallet, DollarSign, Copy, Trash2, Activity } from 'lucide-react'
+import { Search, X, Plus, AlignLeft, Send, TrendingUp, Wallet, DollarSign, Copy, Trash2, Activity, Upload, FileText, Cpu, Sparkles, RefreshCw } from 'lucide-react'
 import { useGetCompanies } from '@/hooks/useCompanies'
 import { useUpsertIncomeStatement } from '@/hooks/useIncomeStatements'
 import { useUpsertBalanceSheet } from '@/hooks/useBalanceSheets'
@@ -23,6 +23,152 @@ export default function JsonEditorPage() {
     stockPrices: []
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const mockExtractedData = {
+    incomeStatement: {
+      period: 'ANNUAL',
+      fiscalYear: 2025,
+      periodEndDate: '2025-12-31',
+      currency: 'IDR',
+      auditStatus: 'AUDITED',
+      revenue: 550000000000,
+      revenueGrowthYoY: 12.5,
+      cogs: 220000000000,
+      grossProfit: 330000000000,
+      operatingExpenses: 180000000000,
+      sellingExpenses: 60000000000,
+      generalAdminExpenses: 120000000000,
+      ebitda: 175000000000,
+      ebit: 150000000000,
+      operatingIncome: 150000000000,
+      pretaxIncome: 145000000000,
+      incomeTaxExpense: 31900000000,
+      effectiveTaxRate: 22.0,
+      netIncome: 113100000000,
+      eps: 452.4,
+      sharesWeightedAvg: 250000000
+    },
+    balanceSheet: {
+      period: 'ANNUAL',
+      fiscalYear: 2025,
+      periodEndDate: '2025-12-31',
+      currency: 'IDR',
+      auditStatus: 'AUDITED',
+      cash: 85000000000,
+      shortTermInvestments: 25000000000,
+      accountsReceivable: 45000000000,
+      inventory: 60000000000,
+      otherCurrentAssets: 10000000000,
+      totalCurrentAssets: 225000000000,
+      propertyPlantEquipment: 350000000000,
+      intangibleAssets: 150000000000,
+      goodwill: 40000000000,
+      totalNonCurrentAssets: 540000000000,
+      totalAssets: 765000000000,
+      shortTermDebt: 30000000000,
+      accountsPayable: 50000000000,
+      otherCurrentLiabilities: 15000000000,
+      totalCurrentLiabilities: 95000000000,
+      longTermDebt: 120000000000,
+      totalNonCurrentLiabilities: 120000000000,
+      totalLiabilities: 215000000000,
+      commonStock: 250000000000,
+      retainedEarnings: 300000000000,
+      totalEquity: 550000000000,
+      netDebt: 65000000000,
+      workingCapital: 130000000000
+    },
+    cashFlow: {
+      period: 'ANNUAL',
+      fiscalYear: 2025,
+      periodEndDate: '2025-12-31',
+      currency: 'IDR',
+      auditStatus: 'AUDITED',
+      netIncomeStart: 113100000000,
+      depreciationAmort: 25000000000,
+      changeInWorkingCapital: -15000000000,
+      netCashFromOperations: 123100000000,
+      capitalExpenditures: -75000000000,
+      netCashFromInvesting: -75000000000,
+      debtIssuance: 30000000000,
+      dividendsPaid: -45000000000,
+      netCashFromFinancing: -15000000000,
+      netChangeInCash: 33100000000,
+      cashBeginningPeriod: 51900000000,
+      cashEndPeriod: 85000000000,
+      freeCashFlow: 48100000000
+    }
+  }
+
+  const [activeTab, setActiveTab] = useState('editor') // 'editor' | 'extractor'
+  const [extractorState, setExtractorState] = useState('idle') // 'idle' | 'extracting' | 'preview'
+  const [fileName, setFileName] = useState('')
+  const [extractionProgress, setExtractionProgress] = useState(0)
+  const [extractionStep, setExtractionStep] = useState('')
+  const [previewActiveTab, setPreviewActiveTab] = useState('income') // 'income' | 'balance' | 'cash'
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    startExtractionSimulation(file.name)
+  }
+
+  const startExtractionSimulation = (name) => {
+    setFileName(name)
+    setExtractorState('extracting')
+    setExtractionProgress(0)
+    setExtractionStep('Uploading document payload to AI parsing pipeline...')
+
+    const steps = [
+      { progress: 20, step: 'OCR scanning financial report pages...' },
+      { progress: 50, step: 'Extracting balance sheet and mapping assets, liabilities, and equities...' },
+      { progress: 75, step: 'Parsing income statement revenues, COGS, expenses, and net profit margins...' },
+      { progress: 90, step: 'Synthesizing cash flows operations, investing, and financing metrics...' },
+      { progress: 100, step: 'Extraction mapping completed!' }
+    ]
+
+    steps.forEach((stepItem, index) => {
+      setTimeout(() => {
+        setExtractionProgress(stepItem.progress)
+        setExtractionStep(stepItem.step)
+
+        if (stepItem.progress === 100) {
+          setTimeout(() => {
+            setExtractorState('preview')
+          }, 600)
+        }
+      }, (index + 1) * 1000)
+    })
+  }
+
+  const handleResetExtractor = () => {
+    setExtractorState('idle')
+    setFileName('')
+    setExtractionProgress(0)
+    setExtractionStep('')
+  }
+
+  const handleApplyExtractedData = () => {
+    if (!selectedCompany) {
+      showToast('Please select a company first!', 'error')
+      return
+    }
+
+    const newIncome = { ...mockExtractedData.incomeStatement, companyId: selectedCompany.id }
+    const newBalance = { ...mockExtractedData.balanceSheet, companyId: selectedCompany.id }
+    const newCashFlow = { ...mockExtractedData.cashFlow, companyId: selectedCompany.id }
+
+    setJsonData(prev => ({
+      ...prev,
+      incomeStatements: [...(prev.incomeStatements || []), newIncome],
+      balanceSheets: [...(prev.balanceSheets || []), newBalance],
+      cashFlows: [...(prev.cashFlows || []), newCashFlow]
+    }))
+
+    showToast('Extracted statements successfully applied to JSON Editor!', 'success')
+    setActiveTab('editor')
+  }
 
   const { data: searchResults } = useGetCompanies(1, 20, debouncedCompanyQuery)
   const companyOptions = searchResults?.items || []
@@ -338,24 +484,214 @@ export default function JsonEditorPage() {
           </div>
         </div>
 
-        <div className="lg:col-span-2">
-          <div className="bg-[#09090b] border border-zinc-900 rounded-xl overflow-hidden">
-            <div className="p-3 border-b border-zinc-900 bg-[#0c0c0e] flex items-center justify-between">
-              <span className="text-xs font-medium text-zinc-400">JSON Editor</span>
-              <div className="flex items-center gap-4 text-xs text-zinc-500">
-                <span>Income: {(jsonData.incomeStatements || []).length}</span>
-                <span>Balance: {(jsonData.balanceSheets || []).length}</span>
-                <span>Cash Flow: {(jsonData.cashFlows || []).length}</span>
-                <span>Stock Prices: {(jsonData.stockPrices || []).length}</span>
-              </div>
-            </div>
-            <textarea
-              value={jsonString}
-              onChange={handleTextChange}
-              className="w-full h-[600px] bg-transparent text-zinc-300 outline-none resize-none leading-relaxed font-mono text-xs p-4 focus:outline-none overflow-y-auto"
-              spellCheck={false}
-            />
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex border-b border-zinc-900 gap-2">
+            <button
+              onClick={() => setActiveTab('editor')}
+              className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all flex items-center gap-2 ${
+                activeTab === 'editor'
+                  ? 'border-emerald-500 text-emerald-400 font-medium'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              <AlignLeft className="w-3.5 h-3.5" />
+              <span>JSON Editor</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('extractor')}
+              className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all flex items-center gap-2 ${
+                activeTab === 'extractor'
+                  ? 'border-emerald-500 text-emerald-400 font-medium'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Financial Report Extractor (AI Simulator)</span>
+            </button>
           </div>
+
+          {activeTab === 'editor' ? (
+            <div className="bg-[#09090b] border border-zinc-900 rounded-xl overflow-hidden">
+              <div className="p-3 border-b border-zinc-900 bg-[#0c0c0e] flex items-center justify-between">
+                <span className="text-xs font-medium text-zinc-400">JSON Editor</span>
+                <div className="flex items-center gap-4 text-xs text-zinc-500">
+                  <span>Income: {(jsonData.incomeStatements || []).length}</span>
+                  <span>Balance: {(jsonData.balanceSheets || []).length}</span>
+                  <span>Cash Flow: {(jsonData.cashFlows || []).length}</span>
+                  <span>Stock Prices: {(jsonData.stockPrices || []).length}</span>
+                </div>
+              </div>
+              <textarea
+                value={jsonString}
+                onChange={handleTextChange}
+                className="w-full h-[600px] bg-transparent text-zinc-300 outline-none resize-none leading-relaxed font-mono text-xs p-4 focus:outline-none overflow-y-auto"
+                spellCheck={false}
+              />
+            </div>
+          ) : (
+            <div className="bg-[#09090b] border border-zinc-900 rounded-xl p-6 space-y-6">
+              {extractorState === 'idle' && (
+                <div className="flex flex-col items-center justify-center border-2 border-dashed border-zinc-800 rounded-xl p-12 bg-[#0c0c0e]/30 hover:bg-[#0c0c0e]/50 transition-all group relative cursor-pointer">
+                  <input
+                    type="file"
+                    id="file-upload"
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    onChange={handleFileUpload}
+                    accept=".pdf,.xlsx,.xls,.png,.jpg,.jpeg"
+                  />
+                  <div className="w-16 h-16 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-emerald-400 group-hover:border-zinc-700/50 transition-colors mb-4">
+                    <Upload className="w-6 h-6 animate-pulse" />
+                  </div>
+                  <h3 className="text-sm font-semibold text-zinc-300 group-hover:text-zinc-200 transition-colors">
+                    Upload Financial Report
+                  </h3>
+                  <p className="text-xs text-zinc-500 mt-1 max-w-sm text-center">
+                    Drag and drop or click to upload your PDF, Excel sheet, or image. Our simulated AI pipeline will automatically extract statements data.
+                  </p>
+                </div>
+              )}
+
+              {extractorState === 'extracting' && (
+                <div className="space-y-6 p-8 border border-zinc-900 rounded-xl bg-[#0c0c0e]/30">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-emerald-400">
+                      <Cpu className="w-5 h-5 animate-spin" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-xs font-semibold text-zinc-400 truncate">Extracting from: <span className="text-zinc-200 font-mono">{fileName}</span></h4>
+                      <p className="text-xs text-zinc-500 mt-0.5 animate-pulse">{extractionStep}</p>
+                    </div>
+                    <div className="text-xs font-mono font-bold text-emerald-400">{extractionProgress}%</div>
+                  </div>
+
+                  <div className="w-full bg-zinc-900 rounded-full h-2 overflow-hidden border border-zinc-800">
+                    <div
+                      className="bg-emerald-500 h-full transition-all duration-500 ease-out rounded-full"
+                      style={{ width: `${extractionProgress}%` }}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
+                    {[
+                      { step: 1, label: 'OCR Extraction', limit: 20 },
+                      { step: 2, label: 'Balance Sheet Mapping', limit: 50 },
+                      { step: 3, label: 'Income Statement Synthesis', limit: 75 },
+                      { step: 4, label: 'Cash Flow Translation', limit: 100 }
+                    ].map((s) => (
+                      <div
+                        key={s.step}
+                        className={`p-3 rounded-lg border text-center transition-all ${
+                          extractionProgress >= s.limit
+                            ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400'
+                            : 'bg-zinc-950/20 border-zinc-900/60 text-zinc-600'
+                        }`}
+                      >
+                        <div className="text-[10px] font-mono font-semibold uppercase tracking-wider mb-1">Step {s.step}</div>
+                        <div className="text-[11px] font-medium truncate">{s.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {extractorState === 'preview' && (
+                <div className="space-y-6">
+                  {/* File information panel */}
+                  <div className="flex items-center justify-between p-4 bg-[#0c0c0e] border border-zinc-900 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-zinc-900 border border-zinc-800 rounded-lg flex items-center justify-center text-emerald-400">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-semibold text-zinc-300 truncate max-w-xs">{fileName}</h4>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono mt-1 inline-block">AI Extraction Successful</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleResetExtractor}
+                        className="px-3 py-1.5 rounded-lg border border-zinc-800 hover:border-zinc-700 bg-zinc-900 hover:bg-zinc-900/80 text-xs text-zinc-400 hover:text-zinc-200 transition-colors flex items-center gap-1"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Upload New</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleApplyExtractedData}
+                        className="px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm shadow-emerald-500/10"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Apply to JSON Editor</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Statements previews tab system */}
+                  <div className="border border-zinc-900 rounded-xl overflow-hidden bg-[#0c0c0e]/30">
+                    <div className="flex bg-[#0c0c0e] border-b border-zinc-900 p-2 gap-1.5">
+                      {[
+                        { id: 'income', label: 'Income Statement', icon: TrendingUp },
+                        { id: 'balance', label: 'Balance Sheet', icon: Wallet },
+                        { id: 'cash', label: 'Cash Flow', icon: DollarSign }
+                      ].map((t) => (
+                        <button
+                          key={t.id}
+                          onClick={() => setPreviewActiveTab(t.id)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                            previewActiveTab === t.id
+                              ? 'bg-zinc-900 border border-zinc-800 text-emerald-400 shadow-sm'
+                              : 'text-zinc-500 hover:text-zinc-300'
+                          }`}
+                        >
+                          <t.icon className="w-3.5 h-3.5" />
+                          <span>{t.label}</span>
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="p-4 max-h-[350px] overflow-y-auto font-mono text-xs divide-y divide-zinc-900">
+                      {previewActiveTab === 'income' &&
+                        Object.entries(mockExtractedData.incomeStatement).map(([key, val]) => (
+                          <div key={key} className="flex justify-between py-2 items-center hover:bg-zinc-900/10 px-1.5 rounded">
+                            <span className="text-zinc-500 font-sans">{key}</span>
+                            <span className="text-zinc-200 font-bold">
+                              {typeof val === 'number' && key !== 'fiscalYear' && key !== 'effectiveTaxRate'
+                                ? val.toLocaleString('en-US')
+                                : val?.toString() || '—'}
+                            </span>
+                          </div>
+                        ))}
+
+                      {previewActiveTab === 'balance' &&
+                        Object.entries(mockExtractedData.balanceSheet).map(([key, val]) => (
+                          <div key={key} className="flex justify-between py-2 items-center hover:bg-zinc-900/10 px-1.5 rounded">
+                            <span className="text-zinc-500 font-sans">{key}</span>
+                            <span className="text-zinc-200 font-bold">
+                              {typeof val === 'number' && key !== 'fiscalYear'
+                                ? val.toLocaleString('en-US')
+                                : val?.toString() || '—'}
+                            </span>
+                          </div>
+                        ))}
+
+                      {previewActiveTab === 'cash' &&
+                        Object.entries(mockExtractedData.cashFlow).map(([key, val]) => (
+                          <div key={key} className="flex justify-between py-2 items-center hover:bg-zinc-900/10 px-1.5 rounded">
+                            <span className="text-zinc-500 font-sans">{key}</span>
+                            <span className="text-zinc-200 font-bold">
+                              {typeof val === 'number' && key !== 'fiscalYear'
+                                ? val.toLocaleString('en-US')
+                                : val?.toString() || '—'}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
