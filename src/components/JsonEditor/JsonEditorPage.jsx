@@ -118,13 +118,13 @@ export default function JsonEditorPage() {
     setFileName(name)
     setExtractorState('extracting')
     setExtractionProgress(0)
-    setExtractionStep('Uploading document payload to AI parsing pipeline...')
+    setExtractionStep('Uploading XBRL ZIP archive package to parsing pipeline...')
 
     const steps = [
-      { progress: 20, step: 'OCR scanning financial report pages...' },
-      { progress: 50, step: 'Extracting balance sheet and mapping assets, liabilities, and equities...' },
-      { progress: 75, step: 'Parsing income statement revenues, COGS, expenses, and net profit margins...' },
-      { progress: 90, step: 'Synthesizing cash flows operations, investing, and financing metrics...' },
+      { progress: 20, step: 'Unpacking XBRL ZIP archive & validating taxonomies...' },
+      { progress: 50, step: 'Parsing balance sheet from XBRL instance tags...' },
+      { progress: 75, step: 'Parsing income statement from XBRL instance tags...' },
+      { progress: 90, step: 'Parsing cash flow statement from XBRL instance tags...' },
       { progress: 100, step: 'Extraction mapping completed!' }
     ]
 
@@ -537,16 +537,16 @@ export default function JsonEditorPage() {
                     id="file-upload"
                     className="absolute inset-0 opacity-0 cursor-pointer"
                     onChange={handleFileUpload}
-                    accept=".pdf,.xlsx,.xls,.png,.jpg,.jpeg"
+                    accept=".zip"
                   />
                   <div className="w-16 h-16 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-emerald-400 group-hover:border-zinc-700/50 transition-colors mb-4">
                     <Upload className="w-6 h-6 animate-pulse" />
                   </div>
                   <h3 className="text-sm font-semibold text-zinc-300 group-hover:text-zinc-200 transition-colors">
-                    Upload Financial Report
+                    Upload XBRL ZIP Package
                   </h3>
                   <p className="text-xs text-zinc-500 mt-1 max-w-sm text-center">
-                    Drag and drop or click to upload your PDF, Excel sheet, or image. Our simulated AI pipeline will automatically extract statements data.
+                    Drag and drop or click to upload your ZIP file containing XBRL reports (.zip). Our simulated AI pipeline will automatically extract statements data.
                   </p>
                 </div>
               )}
@@ -573,9 +573,9 @@ export default function JsonEditorPage() {
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
                     {[
-                      { step: 1, label: 'OCR Extraction', limit: 20 },
-                      { step: 2, label: 'Balance Sheet Mapping', limit: 50 },
-                      { step: 3, label: 'Income Statement Synthesis', limit: 75 },
+                      { step: 1, label: 'Taxonomy Validation', limit: 20 },
+                      { step: 2, label: 'Balance Sheet Parser', limit: 50 },
+                      { step: 3, label: 'Income Statement Parser', limit: 75 },
                       { step: 4, label: 'Cash Flow Translation', limit: 100 }
                     ].map((s) => (
                       <div
