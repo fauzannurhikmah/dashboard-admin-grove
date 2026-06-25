@@ -22,6 +22,11 @@ export default function JsonEditorSidebar({ formKey, recordId }) {
                 throw new Error('Missing active form key.')
             }
 
+            if (formKey === 'balance-sheets') {
+                const response = await axiosClient.post('/admin/balance-sheets/upsert', payload)
+                return response.data
+            }
+
             const endpoint = isEdit
                 ? (Array.isArray(payload) && formKey === 'income-statements'
                     ? `/admin/${formKey}/batch`

@@ -20,6 +20,33 @@ export function useGetBalanceSheets(page = 1, pageSize = 20, keyword = '', perio
     })
 }
 
+export function useCreateBalanceSheet() {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: async (payload) => {
+            const response = await axiosClient.post('/admin/balance-sheets', payload)
+            return response.data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['admin-balance-sheets'] })
+        },
+    })
+}
+
+export function useUpdateBalanceSheet(id) {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: async (payload) => {
+            const response = await axiosClient.patch(`/admin/balance-sheets/${id}`, payload)
+            return response.data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['admin-balance-sheets'] })
+            queryClient.invalidateQueries({ queryKey: ['admin-balance-sheets', id] })
+        },
+    })
+}
+
 export function useGetBalanceSheetDetail(id) {
     return useQuery({
         queryKey: ['admin-balance-sheets', id],
