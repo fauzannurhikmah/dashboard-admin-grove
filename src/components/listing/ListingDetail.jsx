@@ -13,7 +13,7 @@ import StockChart from '../dashboard/StockChart'
 
 const INCOME_STATEMENT_FIELDS = [
     { key: 'revenue', label: 'Revenue' },
-    { key: 'netIncome', label: 'Net Income (Pemilik Entitas Induk)' },
+    { key: 'netIncomeAttributable', label: 'Net Income (Pemilik Entitas Induk)' },
     { key: 'eps', label: 'EPS (Quarter)' },
 ]
 
