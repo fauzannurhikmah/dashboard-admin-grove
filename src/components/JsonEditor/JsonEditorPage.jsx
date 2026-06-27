@@ -132,18 +132,22 @@ export default function JsonEditorPage() {
 
   const handleActualUpload = async () => {
     if (!selectedFile) {
-      showToast('Please select a PDF or XBRL ZIP file first!', 'error')
+      showToast('Please select a PDF, Excel, or XBRL ZIP file first!', 'error')
       return
     }
 
-    const isPdf = selectedFile.name.toLowerCase().endsWith('.pdf')
+    const nameLower = selectedFile.name.toLowerCase()
+    const isPdf = nameLower.endsWith('.pdf')
+    const isXlsx = nameLower.endsWith('.xlsx') || nameLower.endsWith('.xls')
 
     setIsUploading(true)
     setExtractorState('extracting')
     setExtractionProgress(10)
     setExtractionStep(isPdf
       ? 'Uploading PDF financial report to backend server...'
-      : 'Uploading XBRL ZIP archive to backend server...'
+      : isXlsx
+        ? 'Uploading Excel financial report to backend server...'
+        : 'Uploading XBRL ZIP archive to backend server...'
     )
 
     // Start simulation steps while upload/processing is running
@@ -169,12 +173,14 @@ export default function JsonEditorPage() {
       setExtractionProgress(60)
       setExtractionStep(isPdf
         ? 'Analyzing PDF structure & extracting text with AI...'
-        : 'Unpacking XBRL ZIP archive & validating taxonomies...'
+        : isXlsx
+          ? 'Analyzing Excel sheets & extracting text with AI...'
+          : 'Unpacking XBRL ZIP archive & validating taxonomies...'
       )
 
       setTimeout(() => {
         setExtractionProgress(85)
-        setExtractionStep(isPdf
+        setExtractionStep(isPdf || isXlsx
           ? 'Extracting balance sheet, income, and cash flow statements using AI...'
           : 'Extracting balance sheet, income, and cash flow statements...'
         )
@@ -200,7 +206,9 @@ export default function JsonEditorPage() {
           setIsUploading(false)
           showToast(isPdf
             ? 'PDF file uploaded and extracted successfully!'
-            : 'XBRL file uploaded and extracted successfully!',
+            : isXlsx
+              ? 'Excel file uploaded and extracted successfully!'
+              : 'XBRL file uploaded and extracted successfully!',
             'success'
           )
         }, 800)
@@ -209,7 +217,7 @@ export default function JsonEditorPage() {
     } catch (err) {
       clearInterval(uploadInterval)
       console.error(err)
-      showToast(err.response?.data?.message || (isPdf ? 'Failed to upload and extract PDF file' : 'Failed to upload and extract XBRL file'), 'error')
+      showToast(err.response?.data?.message || (isPdf ? 'Failed to upload and extract PDF file' : isXlsx ? 'Failed to upload and extract Excel file' : 'Failed to upload and extract XBRL file'), 'error')
       setExtractorState('idle')
       setIsUploading(false)
     }
@@ -657,16 +665,16 @@ export default function JsonEditorPage() {
                         id="file-upload"
                         className="absolute inset-0 opacity-0 cursor-pointer"
                         onChange={handleFileChange}
-                        accept=".zip,.pdf"
+                        accept=".zip,.pdf,.xlsx,.xls"
                       />
                       <div className="w-16 h-16 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-emerald-400 group-hover:border-zinc-700/50 transition-colors mb-4">
                         <Upload className="w-6 h-6 animate-pulse" />
                       </div>
                       <h3 className="text-sm font-semibold text-zinc-300 group-hover:text-zinc-200 transition-colors">
-                        Select Financial Report File (PDF or XBRL ZIP)
+                        Select Financial Report File (PDF, Excel, or XBRL ZIP)
                       </h3>
                       <p className="text-xs text-zinc-500 mt-1 max-w-sm text-center">
-                        Drag and drop or click to select your PDF report or ZIP file containing XBRL reports (.pdf, .zip). You can review before triggering the extraction process.
+                        Drag and drop or click to select your PDF, Excel (.xlsx/.xls) report, or ZIP file containing XBRL reports (.pdf, .zip, .xlsx, .xls). You can review before triggering the extraction process.
                       </p>
                     </div>
                   ) : (
@@ -726,9 +734,11 @@ export default function JsonEditorPage() {
                   </div>
 
                   {(() => {
-                    const isPdf = fileName.toLowerCase().endsWith('.pdf');
-                    const steps = isPdf ? [
-                      { step: 1, label: 'PDF Text Extraction', limit: 20 },
+                    const nameLower = fileName.toLowerCase();
+                    const isPdf = nameLower.endsWith('.pdf');
+                    const isXlsx = nameLower.endsWith('.xlsx') || nameLower.endsWith('.xls');
+                    const steps = (isPdf || isXlsx) ? [
+                      { step: 1, label: isPdf ? 'PDF Text Extraction' : 'Excel Data Extraction', limit: 20 },
                       { step: 2, label: 'Balance Sheet AI Parser', limit: 50 },
                       { step: 3, label: 'Income Statement AI Parser', limit: 75 },
                       { step: 4, label: 'Cash Flow AI Parser', limit: 100 }
