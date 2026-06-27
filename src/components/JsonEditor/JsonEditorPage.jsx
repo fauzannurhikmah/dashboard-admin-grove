@@ -109,6 +109,7 @@ export default function JsonEditorPage() {
   const [previewActiveTab, setPreviewActiveTab] = useState('income') // 'income' | 'balance' | 'cash'
   const [selectedFile, setSelectedFile] = useState(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [extractedConfident, setExtractedConfident] = useState(null)
   const [extractedData, setExtractedData] = useState({
     incomeStatement: mockExtractedData.incomeStatement,
     balanceSheet: mockExtractedData.balanceSheet,
@@ -129,14 +130,19 @@ export default function JsonEditorPage() {
 
   const handleActualUpload = async () => {
     if (!selectedFile) {
-      showToast('Please select an XBRL ZIP file first!', 'error')
+      showToast('Please select a PDF or XBRL ZIP file first!', 'error')
       return
     }
+
+    const isPdf = selectedFile.name.toLowerCase().endsWith('.pdf')
 
     setIsUploading(true)
     setExtractorState('extracting')
     setExtractionProgress(10)
-    setExtractionStep('Uploading XBRL ZIP archive to backend server...')
+    setExtractionStep(isPdf
+      ? 'Uploading PDF financial report to backend server...'
+      : 'Uploading XBRL ZIP archive to backend server...'
+    )
 
     // Start simulation steps while upload/processing is running
     const uploadInterval = setInterval(() => {
@@ -154,15 +160,22 @@ export default function JsonEditorPage() {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        timeout: 1800000,
       })
 
       clearInterval(uploadInterval)
       setExtractionProgress(60)
-      setExtractionStep('Unpacking XBRL ZIP archive & validating taxonomies...')
+      setExtractionStep(isPdf
+        ? 'Analyzing PDF structure & extracting text with AI...'
+        : 'Unpacking XBRL ZIP archive & validating taxonomies...'
+      )
 
       setTimeout(() => {
         setExtractionProgress(85)
-        setExtractionStep('Extracting balance sheet, income, and cash flow statements...')
+        setExtractionStep(isPdf
+          ? 'Extracting balance sheet, income, and cash flow statements using AI...'
+          : 'Extracting balance sheet, income, and cash flow statements...'
+        )
       }, 800)
 
       setTimeout(() => {
@@ -177,17 +190,24 @@ export default function JsonEditorPage() {
         }
         setExtractedData(extracted)
 
+        const confident = pyData?.confident !== undefined ? pyData.confident : null
+        setExtractedConfident(confident)
+
         setTimeout(() => {
           setExtractorState('preview')
           setIsUploading(false)
-          showToast('XBRL file uploaded and extracted successfully!', 'success')
+          showToast(isPdf
+            ? 'PDF file uploaded and extracted successfully!'
+            : 'XBRL file uploaded and extracted successfully!',
+            'success'
+          )
         }, 800)
       }, 1800)
 
     } catch (err) {
       clearInterval(uploadInterval)
       console.error(err)
-      showToast(err.response?.data?.message || 'Failed to upload and extract XBRL file', 'error')
+      showToast(err.response?.data?.message || (isPdf ? 'Failed to upload and extract PDF file' : 'Failed to upload and extract XBRL file'), 'error')
       setExtractorState('idle')
       setIsUploading(false)
     }
@@ -200,6 +220,7 @@ export default function JsonEditorPage() {
     setExtractionStep('')
     setSelectedFile(null)
     setIsUploading(false)
+    setExtractedConfident(null)
     setExtractedData({
       incomeStatement: mockExtractedData.incomeStatement,
       balanceSheet: mockExtractedData.balanceSheet,
@@ -564,7 +585,7 @@ export default function JsonEditorPage() {
                 }`}
             >
               <Upload className="w-3.5 h-3.5" />
-              <span>Financial Report Extractor (AI Simulator)</span>
+              <span>Financial Report Extractor</span>
             </button>
           </div>
 
@@ -597,16 +618,16 @@ export default function JsonEditorPage() {
                         id="file-upload"
                         className="absolute inset-0 opacity-0 cursor-pointer"
                         onChange={handleFileChange}
-                        accept=".zip"
+                        accept=".zip,.pdf"
                       />
                       <div className="w-16 h-16 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-emerald-400 group-hover:border-zinc-700/50 transition-colors mb-4">
                         <Upload className="w-6 h-6 animate-pulse" />
                       </div>
                       <h3 className="text-sm font-semibold text-zinc-300 group-hover:text-zinc-200 transition-colors">
-                        Select XBRL ZIP Package
+                        Select Financial Report File (PDF or XBRL ZIP)
                       </h3>
                       <p className="text-xs text-zinc-500 mt-1 max-w-sm text-center">
-                        Drag and drop or click to select your ZIP file containing XBRL reports (.zip). You can review before triggering the extraction process.
+                        Drag and drop or click to select your PDF report or ZIP file containing XBRL reports (.pdf, .zip). You can review before triggering the extraction process.
                       </p>
                     </div>
                   ) : (
@@ -665,123 +686,153 @@ export default function JsonEditorPage() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
-                    {[
+                  {(() => {
+                    const isPdf = fileName.toLowerCase().endsWith('.pdf');
+                    const steps = isPdf ? [
+                      { step: 1, label: 'PDF Text Extraction', limit: 20 },
+                      { step: 2, label: 'Balance Sheet AI Parser', limit: 50 },
+                      { step: 3, label: 'Income Statement AI Parser', limit: 75 },
+                      { step: 4, label: 'Cash Flow AI Parser', limit: 100 }
+                    ] : [
                       { step: 1, label: 'Taxonomy Validation', limit: 20 },
                       { step: 2, label: 'Balance Sheet Parser', limit: 50 },
                       { step: 3, label: 'Income Statement Parser', limit: 75 },
                       { step: 4, label: 'Cash Flow Translation', limit: 100 }
-                    ].map((s) => (
-                      <div
-                        key={s.step}
-                        className={`p-3 rounded-lg border text-center transition-all ${extractionProgress >= s.limit
-                            ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400'
-                            : 'bg-zinc-950/20 border-zinc-900/60 text-zinc-600'
-                          }`}
-                      >
-                        <div className="text-[10px] font-mono font-semibold uppercase tracking-wider mb-1">Step {s.step}</div>
-                        <div className="text-[11px] font-medium truncate">{s.label}</div>
+                    ];
+                    return (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
+                        {steps.map((s) => (
+                          <div
+                            key={s.step}
+                            className={`p-3 rounded-lg border text-center transition-all ${extractionProgress >= s.limit
+                                ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400'
+                                : 'bg-zinc-950/20 border-zinc-900/60 text-zinc-600'
+                              }`}
+                          >
+                            <div className="text-[10px] font-mono font-semibold uppercase tracking-wider mb-1">Step {s.step}</div>
+                            <div className="text-[11px] font-medium truncate">{s.label}</div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })()}
                 </div>
               )}
 
-              {extractorState === 'preview' && (
-                <div className="space-y-6 font-sans">
-                  {/* File information panel */}
-                  <div className="flex items-center justify-between p-4 bg-[#0c0c0e] border border-zinc-900 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-zinc-900 border border-zinc-800 rounded-lg flex items-center justify-center text-emerald-400">
-                        <FileText className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-semibold text-zinc-300 truncate max-w-xs">{fileName}</h4>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono mt-1 inline-block">AI Extraction Successful</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={handleResetExtractor}
-                        className="px-3 py-1.5 rounded-lg border border-zinc-800 hover:border-zinc-700 bg-zinc-900 hover:bg-zinc-900/80 text-xs text-zinc-400 hover:text-zinc-200 transition-colors flex items-center gap-1 font-medium"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                        <span>Upload New</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleApplyExtractedData}
-                        className="px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm shadow-emerald-500/10"
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>Apply to JSON Editor</span>
-                      </button>
-                    </div>
-                  </div>
+              {extractorState === 'preview' && (() => {
+                let confidenceColor = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                if (extractedConfident !== null && extractedConfident !== undefined) {
+                  const confVal = Number(extractedConfident)
+                  if (confVal < 70) {
+                    confidenceColor = 'text-rose-400 bg-rose-500/10 border-rose-500/20'
+                  } else if (confVal < 90) {
+                    confidenceColor = 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+                  }
+                }
 
-                  {/* Statements previews tab system */}
-                  <div className="border border-zinc-900 rounded-xl overflow-hidden bg-[#0c0c0e]/30">
-                    <div className="flex bg-[#0c0c0e] border-b border-zinc-900 p-2 gap-1.5">
-                      {[
-                        { id: 'income', label: 'Income Statement', icon: TrendingUp },
-                        { id: 'balance', label: 'Balance Sheet', icon: Wallet },
-                        { id: 'cash', label: 'Cash Flow', icon: DollarSign }
-                      ].map((t) => (
+                return (
+                  <div className="space-y-6 font-sans">
+                    {/* File information panel */}
+                    <div className="flex items-center justify-between p-4 bg-[#0c0c0e] border border-zinc-900 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-zinc-900 border border-zinc-800 rounded-lg flex items-center justify-center text-emerald-400">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-semibold text-zinc-300 truncate max-w-xs">{fileName}</h4>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono inline-block">AI Extraction Successful</span>
+                            {fileName.toLowerCase().endsWith('.pdf') && extractedConfident !== null && extractedConfident !== undefined && (
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded border font-mono inline-block ${confidenceColor}`}>
+                                Confidence: {extractedConfident}%
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
                         <button
-                          key={t.id}
-                          onClick={() => setPreviewActiveTab(t.id)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${previewActiveTab === t.id
-                              ? 'bg-zinc-900 border border-zinc-800 text-emerald-400 shadow-sm'
-                              : 'text-zinc-500 hover:text-zinc-300'
-                            }`}
+                          type="button"
+                          onClick={handleResetExtractor}
+                          className="px-3 py-1.5 rounded-lg border border-zinc-800 hover:border-zinc-700 bg-zinc-900 hover:bg-zinc-900/80 text-xs text-zinc-400 hover:text-zinc-200 transition-colors flex items-center gap-1 font-medium"
                         >
-                          <t.icon className="w-3.5 h-3.5" />
-                          <span>{t.label}</span>
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          <span>Upload New</span>
                         </button>
-                      ))}
+                        <button
+                          type="button"
+                          onClick={handleApplyExtractedData}
+                          className="px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm shadow-emerald-500/10"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Apply to JSON Editor</span>
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="p-4 max-h-[350px] overflow-y-auto font-mono text-xs divide-y divide-zinc-900 font-sans">
-                      {previewActiveTab === 'income' &&
-                        Object.entries(extractedData?.incomeStatement || mockExtractedData.incomeStatement).map(([key, val]) => (
-                          <div key={key} className="flex justify-between py-2 items-center hover:bg-zinc-900/10 px-1.5 rounded font-sans">
-                            <span className="text-zinc-500 font-sans">{key}</span>
-                            <span className="text-zinc-200 font-bold font-mono">
-                              {typeof val === 'number' && key !== 'fiscalYear' && key !== 'effectiveTaxRate'
-                                ? val.toLocaleString('en-US')
-                                : val?.toString() || '—'}
-                            </span>
-                          </div>
+                    {/* Statements previews tab system */}
+                    <div className="border border-zinc-900 rounded-xl overflow-hidden bg-[#0c0c0e]/30">
+                      <div className="flex bg-[#0c0c0e] border-b border-zinc-900 p-2 gap-1.5">
+                        {[
+                          { id: 'income', label: 'Income Statement', icon: TrendingUp },
+                          { id: 'balance', label: 'Balance Sheet', icon: Wallet },
+                          { id: 'cash', label: 'Cash Flow', icon: DollarSign }
+                        ].map((t) => (
+                          <button
+                            key={t.id}
+                            onClick={() => setPreviewActiveTab(t.id)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${previewActiveTab === t.id
+                                ? 'bg-zinc-900 border border-zinc-800 text-emerald-400 shadow-sm'
+                                : 'text-zinc-500 hover:text-zinc-300'
+                              }`}
+                          >
+                            <t.icon className="w-3.5 h-3.5" />
+                            <span>{t.label}</span>
+                          </button>
                         ))}
+                      </div>
 
-                      {previewActiveTab === 'balance' &&
-                        Object.entries(extractedData?.balanceSheet || mockExtractedData.balanceSheet).map(([key, val]) => (
-                          <div key={key} className="flex justify-between py-2 items-center hover:bg-zinc-900/10 px-1.5 rounded font-sans">
-                            <span className="text-zinc-500 font-sans">{key}</span>
-                            <span className="text-zinc-200 font-bold font-mono">
-                              {typeof val === 'number' && key !== 'fiscalYear'
-                                ? val.toLocaleString('en-US')
-                                : val?.toString() || '—'}
-                            </span>
-                          </div>
-                        ))}
+                      <div className="p-4 max-h-[350px] overflow-y-auto font-mono text-xs divide-y divide-zinc-900 font-sans">
+                        {previewActiveTab === 'income' &&
+                          Object.entries(extractedData?.incomeStatement || mockExtractedData.incomeStatement).map(([key, val]) => (
+                            <div key={key} className="flex justify-between py-2 items-center hover:bg-zinc-900/10 px-1.5 rounded font-sans">
+                              <span className="text-zinc-500 font-sans">{key}</span>
+                              <span className="text-zinc-200 font-bold font-mono">
+                                {typeof val === 'number' && key !== 'fiscalYear' && key !== 'effectiveTaxRate'
+                                  ? val.toLocaleString('en-US')
+                                  : val?.toString() || '—'}
+                              </span>
+                            </div>
+                          ))}
 
-                      {previewActiveTab === 'cash' &&
-                        Object.entries(extractedData?.cashFlow || mockExtractedData.cashFlow).map(([key, val]) => (
-                          <div key={key} className="flex justify-between py-2 items-center hover:bg-zinc-900/10 px-1.5 rounded font-sans">
-                            <span className="text-zinc-500 font-sans">{key}</span>
-                            <span className="text-zinc-200 font-bold font-mono">
-                              {typeof val === 'number' && key !== 'fiscalYear'
-                                ? val.toLocaleString('en-US')
-                                : val?.toString() || '—'}
-                            </span>
-                          </div>
-                        ))}
+                        {previewActiveTab === 'balance' &&
+                          Object.entries(extractedData?.balanceSheet || mockExtractedData.balanceSheet).map(([key, val]) => (
+                            <div key={key} className="flex justify-between py-2 items-center hover:bg-zinc-900/10 px-1.5 rounded font-sans">
+                              <span className="text-zinc-500 font-sans">{key}</span>
+                              <span className="text-zinc-200 font-bold font-mono">
+                                {typeof val === 'number' && key !== 'fiscalYear'
+                                  ? val.toLocaleString('en-US')
+                                  : val?.toString() || '—'}
+                              </span>
+                            </div>
+                          ))}
+
+                        {previewActiveTab === 'cash' &&
+                          Object.entries(extractedData?.cashFlow || mockExtractedData.cashFlow).map(([key, val]) => (
+                            <div key={key} className="flex justify-between py-2 items-center hover:bg-zinc-900/10 px-1.5 rounded font-sans">
+                              <span className="text-zinc-500 font-sans">{key}</span>
+                              <span className="text-zinc-200 font-bold font-mono">
+                                {typeof val === 'number' && key !== 'fiscalYear'
+                                  ? val.toLocaleString('en-US')
+                                  : val?.toString() || '—'}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )
+              })()}
             </div>
           )}
         </div>
