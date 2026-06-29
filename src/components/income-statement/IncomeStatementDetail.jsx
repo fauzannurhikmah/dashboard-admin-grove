@@ -21,7 +21,7 @@ export default function IncomeStatementDetail({ id, onClose }) {
     )
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-end animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-end animate-fade-in -top-[2rem]">
             {/* Backdrop Shield Overlay */}
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 

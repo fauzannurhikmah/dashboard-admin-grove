@@ -20,11 +20,32 @@ export default function StockChart({ symbol, isSyncing }) {
     useEffect(() => {
         if (!containerRef.current || chartRef.current) return
 
+        const formatPriceAbbreviated = (price) => {
+            if (price === null || price === undefined) return '';
+            const absPrice = Math.abs(price);
+            let formatted = '';
+            if (absPrice >= 1e12) {
+                formatted = (price / 1e12).toFixed(2) + ' T';
+            } else if (absPrice >= 1e9) {
+                formatted = (price / 1e9).toFixed(2) + ' B';
+            } else if (absPrice >= 1e6) {
+                formatted = (price / 1e6).toFixed(2) + ' M';
+            } else if (absPrice >= 1e3) {
+                formatted = (price / 1e3).toFixed(2) + ' K';
+            } else {
+                formatted = price.toFixed(2);
+            }
+            return formatted.replace(/\.00(?=\s|$)/, '').replace(/(\.\d)0(?=\s|$)/, '$1');
+        };
+
         const chart = createChart(containerRef.current, {
             autoSize: true,
             layout: { background: { type: ColorType.Solid, color: '#09090b' }, textColor: '#71717a' },
             grid: { vertLines: { color: '#18181b' }, horzLines: { color: '#18181b' } },
             crosshair: { mode: 1 },
+            localization: {
+                priceFormatter: formatPriceAbbreviated,
+            },
         })
 
         const series = chart.addSeries(CandlestickSeries, {

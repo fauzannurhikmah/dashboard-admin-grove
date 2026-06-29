@@ -23,6 +23,13 @@ const formatBigNumber = (val) => {
   return num.toLocaleString('id-ID')
 }
 
+const formatEPS = (val) => {
+  if (val === null || val === undefined || val === '') return '-'
+  const num = Number(val)
+  if (Number.isNaN(num)) return val
+  return Number(num.toFixed(2))
+}
+
 export default function GroveScoreBreakdownModal({ companyName, symbol, companyLogoUrl, metric, data, onClose }) {
   const metricName = metricNames[metric] || metric
   const colorClasses = metricColors[metric] || 'text-zinc-400 bg-zinc-500/10 border-zinc-500/20'
@@ -32,9 +39,9 @@ export default function GroveScoreBreakdownModal({ companyName, symbol, companyL
   const isImplemented = data?.status !== 'not_implemented' && data?.details
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end animate-fade-in">
+    <div className="fixed inset-0 z-50 flex justify-end animate-fade-in -top-[2rem]">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-xs transition-opacity" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity" onClick={onClose} />
 
       {/* Drawer Panel */}
       <div className="relative w-full max-w-[800px] h-full bg-[#09090b] border-l border-zinc-900 flex flex-col shadow-2xl text-sm text-zinc-300 animate-slide-in">
@@ -168,6 +175,7 @@ export default function GroveScoreBreakdownModal({ companyName, symbol, companyL
                                 </span>
                               </div>
                             )}
+                            
 
                             {subData.roePct !== undefined && subData.roePct !== null && (
                               <div className="p-2.5 bg-zinc-900/30 rounded-lg border border-zinc-900">
@@ -238,8 +246,8 @@ export default function GroveScoreBreakdownModal({ companyName, symbol, companyL
                                   {subData.items.map((it, idx) => (
                                     <tr key={idx} className="hover:bg-zinc-900/20 transition-colors">
                                       <td className="px-3 py-2 text-zinc-400">{it.currentYear} vs {it.previousYear}</td>
-                                      <td className="px-3 py-2 text-right font-semibold text-zinc-200">{it.totalEPS}</td>
-                                      <td className="px-3 py-2 text-right text-zinc-400">{it.previousTotalEPS}</td>
+                                      <td className="px-3 py-2 text-right font-semibold text-zinc-200">{formatEPS(it.totalEPS)}</td>
+                                      <td className="px-3 py-2 text-right text-zinc-400">{formatEPS(it.previousTotalEPS)}</td>
                                       <td className={`px-3 py-2 text-right font-bold ${it.growthPct > 15 ? 'text-emerald-400' : it.growthPct > 0 ? 'text-emerald-500/70' : 'text-rose-400'}`}>
                                         {it.growthPct > 0 ? '+' : ''}{Number(it.growthPct).toFixed(1)}%
                                       </td>

@@ -15,7 +15,7 @@ export default function BalanceSheetDetail({ id, onClose }) {
     )
 
     return (
-        <div className="fixed inset-0 z-50 flex justify-end animate-fade-in">
+        <div className="fixed inset-0 z-50 flex justify-end animate-fade-in -top-[2rem]">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
             <div className="relative w-full max-w-[500px] h-full bg-[#09090b] border-l border-zinc-900 flex flex-col shadow-2xl text-sm text-zinc-300">

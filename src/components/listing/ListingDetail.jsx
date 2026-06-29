@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, RefreshCw, LineChart, Database, BarChart3 } from 'lucide-react'
+import { ArrowLeft, RefreshCw, LineChart, Database, BarChart3, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useGetListingDetail, useSyncStockPrice } from '@/hooks/useListings'
 import { useGetIncomeStatementsByCompany, useSyncIncomeStatements } from '@/hooks/useIncomeStatements'
 import { useGetBalanceSheetsByCompany, useSyncBalanceSheets } from '@/hooks/useBalanceSheets'
@@ -136,6 +136,8 @@ export default function ListingDetail() {
     const showToast = useFormStore((state) => state.showToast)
     const [selectedStatement, setSelectedStatement] = useState('income')
     const [chartKey, setChartKey] = useState(0)
+    const [selectedStatTab, setSelectedStatTab] = useState('netIncome')
+    const [yearStartIndex, setYearStartIndex] = useState(0)
 
     const { data: listing, isLoading } = useGetListingDetail(id)
 
@@ -144,6 +146,187 @@ export default function ListingDetail() {
         isFetching: isFetchingIncome,
         refetch: refetchIncome,
     } = useGetIncomeStatementsByCompany(listing?.company?.id)
+
+    // Key Stats processing
+    const { keyStatsData, keyStatsYears, latestPeriod, currencyCode } = useMemo(() => {
+        // Filter for quarterly statements
+        const quarters = incomeStatements.filter(s => ['Q1', 'Q2', 'Q3', 'Q4'].includes(s.period));
+        
+        // Find currency code
+        const curr = quarters[0]?.currency || 'IDR';
+
+        // Group statements by fiscalYear and period
+        const dataByYear = {};
+        quarters.forEach(s => {
+            if (!dataByYear[s.fiscalYear]) {
+                dataByYear[s.fiscalYear] = {};
+            }
+            dataByYear[s.fiscalYear][s.period] = s;
+        });
+
+        // Unique years sorted descending
+        const years = Array.from(new Set(quarters.map(q => q.fiscalYear))).sort((a, b) => b - a);
+
+        // Find overall latest quarter in the dataset
+        const sortedQuarters = [...quarters].sort((a, b) => {
+            if (a.fiscalYear !== b.fiscalYear) return b.fiscalYear - a.fiscalYear;
+            const periodOrder = { 'Q4': 4, 'Q3': 3, 'Q2': 2, 'Q1': 1 };
+            return periodOrder[b.period] - periodOrder[a.period];
+        });
+        const latestPeriodVal = sortedQuarters[0]?.period || 'Q1';
+
+        // Helper to get trailing quarters ending in targetQuarter of year
+        const getTrailingQuarters = (year, targetQuarter) => {
+            if (targetQuarter === 'Q4') {
+                return [
+                    { year, period: 'Q4' },
+                    { year, period: 'Q3' },
+                    { year, period: 'Q2' },
+                    { year, period: 'Q1' }
+                ];
+            } else if (targetQuarter === 'Q3') {
+                return [
+                    { year, period: 'Q3' },
+                    { year, period: 'Q2' },
+                    { year, period: 'Q1' },
+                    { year: year - 1, period: 'Q4' }
+                ];
+            } else if (targetQuarter === 'Q2') {
+                return [
+                    { year, period: 'Q2' },
+                    { year, period: 'Q1' },
+                    { year: year - 1, period: 'Q4' },
+                    { year: year - 1, period: 'Q3' }
+                ];
+            } else if (targetQuarter === 'Q1') {
+                return [
+                    { year, period: 'Q1' },
+                    { year: year - 1, period: 'Q4' },
+                    { year: year - 1, period: 'Q3' },
+                    { year: year - 1, period: 'Q2' }
+                ];
+            }
+            return [];
+        };
+
+        const fieldKeys = {
+            netIncome: 'netIncomeAttributable',
+            eps: 'eps',
+            revenue: 'revenue'
+        };
+
+        const calculatedStats = {};
+        
+        years.forEach(year => {
+            calculatedStats[year] = {};
+            ['netIncome', 'eps', 'revenue'].forEach(tab => {
+                const fKey = fieldKeys[tab];
+                
+                // Quarter values
+                const qValues = {
+                    Q1: dataByYear[year]?.Q1?.[fKey] ?? null,
+                    Q2: dataByYear[year]?.Q2?.[fKey] ?? null,
+                    Q3: dataByYear[year]?.Q3?.[fKey] ?? null,
+                    Q4: dataByYear[year]?.Q4?.[fKey] ?? null,
+                };
+                
+                // Annualised calculation
+                const reportedQuarters = ['Q1', 'Q2', 'Q3', 'Q4'].filter(
+                    q => dataByYear[year]?.[q] !== undefined && dataByYear[year]?.[q]?.[fKey] !== null && dataByYear[year]?.[q]?.[fKey] !== undefined
+                );
+                
+                let annVal = null;
+                if (reportedQuarters.length > 0) {
+                    let sum = 0;
+                    let maxQuarterNum = 0;
+                    const quarterMapping = { 'Q1': 1, 'Q2': 2, 'Q3': 3, 'Q4': 4 };
+                    reportedQuarters.forEach(q => {
+                        sum += Number(dataByYear[year][q][fKey]);
+                        maxQuarterNum = Math.max(maxQuarterNum, quarterMapping[q]);
+                    });
+                    annVal = maxQuarterNum > 0 ? sum * (4 / maxQuarterNum) : null;
+                }
+                
+                // TTM calculation
+                let ttmVal = null;
+                let maxQuarterOfThisYear = null;
+                const quarterMapping = { 'Q1': 1, 'Q2': 2, 'Q3': 3, 'Q4': 4 };
+                reportedQuarters.forEach(q => {
+                    maxQuarterOfThisYear = maxQuarterOfThisYear === null 
+                        ? q 
+                        : (quarterMapping[q] > quarterMapping[maxQuarterOfThisYear] ? q : maxQuarterOfThisYear);
+                });
+                
+                if (maxQuarterOfThisYear) {
+                    const targetQuarters = getTrailingQuarters(year, maxQuarterOfThisYear);
+                    let ttmSum = 0;
+                    let hasAllQuarters = true;
+                    targetQuarters.forEach(tq => {
+                        const val = dataByYear[tq.year]?.[tq.period]?.[fKey];
+                        if (val === null || val === undefined) {
+                            hasAllQuarters = false;
+                        } else {
+                            ttmSum += Number(val);
+                        }
+                    });
+                    ttmVal = hasAllQuarters ? ttmSum : null;
+                }
+                
+                calculatedStats[year][tab] = {
+                    ...qValues,
+                    annualised: annVal,
+                    ttm: ttmVal
+                };
+            });
+        });
+
+        return {
+            keyStatsData: calculatedStats,
+            keyStatsYears: years,
+            latestPeriod: latestPeriodVal,
+            currencyCode: curr
+        };
+    }, [incomeStatements]);
+
+    const keyStatsRows = [
+        { label: 'Q1', valueKey: 'Q1' },
+        { label: 'Q2', valueKey: 'Q2' },
+        { label: 'Q3', valueKey: 'Q3' },
+        { label: 'Q4', valueKey: 'Q4' },
+        { label: 'Annualised', valueKey: 'annualised' },
+        { label: `TTM (${latestPeriod})`, valueKey: 'ttm' }
+    ];
+
+    const formatKeyStatValue = (tab, value) => {
+        if (value === null || value === undefined) return '-';
+        const numValue = Number(value);
+        if (isNaN(numValue)) return '-';
+        if (tab === 'eps') {
+            const isNegative = numValue < 0;
+            const formatted = Math.abs(numValue).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            return isNegative ? `(${formatted})` : formatted;
+        }
+        return formatAbbreviated(numValue);
+    };
+
+    const getKeyStatTooltip = (tab, value, currency = 'IDR') => {
+        if (value === null || value === undefined) return '';
+        const numValue = Number(value);
+        if (isNaN(numValue)) return '';
+        if (tab === 'eps') {
+            return numValue.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        const formatter = new Intl.NumberFormat(
+            currency === 'IDR' ? 'id-ID' : 'en-US',
+            {
+                style: 'currency',
+                currency: currency,
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        );
+        return formatter.format(numValue);
+    };
 
     const {
         data: balanceSheets = [],
@@ -295,12 +478,121 @@ export default function ListingDetail() {
                 </div>
             </div>
 
-            <div className="mb-6 rounded-xl border border-zinc-900 bg-[#09090b] p-6">
-                <div className="mb-4 flex items-center gap-2">
-                    <LineChart className="h-4 w-4 text-emerald-500" />
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-300">Price Analytics</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
+                {/* Price Analytics Card */}
+                <div className="lg:col-span-7 xl:col-span-8 rounded-xl border border-zinc-900 bg-[#09090b] p-6">
+                    <div className="mb-4 flex items-center gap-2">
+                        <LineChart className="h-4 w-4 text-emerald-500" />
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-300">Price Analytics</h3>
+                    </div>
+                    <StockChart key={chartKey} symbol={listing.symbol} isSyncing={isSyncingPrice} />
                 </div>
-                <StockChart key={chartKey} symbol={listing.symbol} isSyncing={isSyncingPrice} />
+
+                {/* Key Stats Card */}
+                <div className="lg:col-span-5 xl:col-span-4 w-full max-w-[480px] lg:max-w-none relative rounded-xl border border-zinc-900 bg-[#09090b] p-4 shadow-xl">
+                    <div className="mb-4">
+                        <div className="flex items-center gap-1.5 mb-2.5">
+                            <BarChart3 className="h-4 w-4 text-emerald-400" />
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-300">Key Stats</h3>
+                        </div>
+                        
+                        {keyStatsYears.length > 0 && (
+                            <div className="flex items-center justify-between gap-2.5">
+                                <div className="flex items-center gap-0.5 rounded-lg border border-zinc-800 bg-zinc-950 p-0.5 shadow-inner">
+                                    {[
+                                        { id: 'netIncome', label: 'Net Income' },
+                                        { id: 'eps', label: 'EPS' },
+                                        { id: 'revenue', label: 'Revenue' }
+                                    ].map((tab) => (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => setSelectedStatTab(tab.id)}
+                                            className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all duration-300 ${selectedStatTab === tab.id
+                                                ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.05)]'
+                                                : 'text-zinc-500 border border-transparent hover:text-zinc-300 hover:bg-zinc-900/40'
+                                                }`}
+                                        >
+                                            {tab.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                
+                                {keyStatsYears.length > 3 && (
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={() => setYearStartIndex(prev => Math.max(prev - 1, 0))}
+                                            disabled={yearStartIndex === 0}
+                                            className="p-1 rounded-md border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-100 disabled:opacity-30 disabled:hover:text-zinc-400 transition-colors"
+                                        >
+                                            <ChevronLeft className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                            onClick={() => setYearStartIndex(prev => Math.min(prev + 1, keyStatsYears.length - 3))}
+                                            disabled={yearStartIndex >= keyStatsYears.length - 3}
+                                            className="p-1 rounded-md border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-100 disabled:opacity-30 disabled:hover:text-zinc-400 transition-colors"
+                                        >
+                                            <ChevronRight className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {keyStatsYears.length === 0 ? (
+                        <div className="py-6 text-center text-zinc-500 font-mono text-xs">
+                            No financial data available to compute stats. Use "Sync Financials" to import.
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto pb-1">
+                            <table className="w-full border-collapse text-[11px] font-mono text-zinc-400">
+                                <thead>
+                                    <tr className="border-b border-zinc-900 text-left text-zinc-500">
+                                        <th className="sticky left-0 z-10 bg-[#09090b] py-2 text-zinc-400 font-bold border-r border-zinc-900/40 pr-4 text-left whitespace-nowrap">Period</th>
+                                        {keyStatsYears.slice(yearStartIndex, yearStartIndex + 3).map((year) => (
+                                            <th key={year} className="px-3 py-2 text-right font-bold text-zinc-300">
+                                                {year}
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {keyStatsRows.map((row) => (
+                                        <tr key={row.valueKey} className="border-b border-zinc-900/40 hover:bg-zinc-900/20 transition-colors duration-250 group">
+                                            <td className="sticky left-0 z-10 bg-[#09090b] py-2 pr-4 font-medium text-zinc-400 border-r border-zinc-900/40 transition-colors group-hover:text-zinc-200 whitespace-nowrap">
+                                                {row.label}
+                                            </td>
+                                            {keyStatsYears.slice(yearStartIndex, yearStartIndex + 3).map((year) => {
+                                                const val = keyStatsData[year]?.[selectedStatTab]?.[row.valueKey];
+                                                const formatted = formatKeyStatValue(selectedStatTab, val);
+                                                const tooltip = getKeyStatTooltip(selectedStatTab, val, currencyCode);
+
+                                                const numVal = Number(val);
+                                                const isNegative = val !== null && val !== undefined && !isNaN(numVal) && numVal < 0;
+                                                const isZeroOrNull = val === null || val === undefined || (!isNaN(numVal) && numVal === 0);
+
+                                                return (
+                                                    <td
+                                                        key={year}
+                                                        className={`whitespace-nowrap px-3 py-2 text-right font-mono text-[11px] cursor-help transition-colors ${isZeroOrNull
+                                                            ? 'text-zinc-600'
+                                                            : isNegative
+                                                                ? 'text-rose-400/90 font-medium'
+                                                                : 'text-zinc-300 group-hover:text-zinc-100'
+                                                            }`}
+                                                        title={tooltip || undefined}
+                                                    >
+                                                        {formatted}
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
             </div>
 
             <div className="relative rounded-xl border border-zinc-900 bg-[#09090b] p-6 shadow-xl">
