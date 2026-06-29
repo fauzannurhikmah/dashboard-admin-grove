@@ -17,4 +17,21 @@ axiosClient.interceptors.request.use((config) => {
     return config
 })
 
+// Interseptor respon untuk menangani error unauthorized (401)
+axiosClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response && error.response.status === 401) {
+            localStorage.removeItem('token')
+            localStorage.removeItem('user')
+            
+            // Redirect ke login jika pengguna tidak di halaman auth saat ini
+            if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+                window.location.href = '/login'
+            }
+        }
+        return Promise.reject(error)
+    }
+)
+
 export default axiosClient

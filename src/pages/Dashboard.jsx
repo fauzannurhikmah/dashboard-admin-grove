@@ -98,7 +98,11 @@ export default function Dashboard() {
 
           <div className="p-2 border-t border-zinc-900 mt-auto">
             <button
-              onClick={() => navigate('/login')}
+              onClick={() => {
+                localStorage.removeItem('token')
+                localStorage.removeItem('user')
+                navigate('/login')
+              }}
               className={`w-full flex items-center rounded-lg text-zinc-500 hover:bg-red-950/20 hover:text-red-400 transition-all duration-150 ${sidebarOpen ? 'px-3 py-2 gap-3 justify-start' : 'p-2 justify-center'}`}
             >
               <LogOut className="w-[18px] h-[18px] flex-shrink-0 text-zinc-600 group-hover:text-red-400" />

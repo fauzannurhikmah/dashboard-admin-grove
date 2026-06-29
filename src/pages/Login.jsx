@@ -1,17 +1,44 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Mail, Lock, ArrowRight, TrendingUp } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, ArrowRight, TrendingUp, Loader2 } from 'lucide-react'
 import { GroveLogo } from '@/components/ui/GroveLogo'
+import { useLogin } from '@/hooks/useAuth'
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
   const navigate = useNavigate()
+  const loginMutation = useLogin()
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    navigate('/dashboard')
+    if (!email || !password) {
+      setError('Email and password are required')
+      return
+    }
+    
+    setError('')
+    
+    loginMutation.mutate(
+      { email, password },
+      {
+        onSuccess: (data) => {
+          if (data && data.success) {
+            const { accessToken, user } = data.data
+            localStorage.setItem('token', accessToken)
+            localStorage.setItem('user', JSON.stringify(user))
+            navigate('/dashboard')
+          } else {
+            setError(data?.message || 'Login failed')
+          }
+        },
+        onError: (err) => {
+          setError(err.response?.data?.message || err.message || 'Connection to auth service failed')
+        }
+      }
+    )
   }
 
   return (
@@ -30,7 +57,13 @@ export default function Login() {
 
         <div className="bg-[#09090b] border border-zinc-900 rounded-xl p-6 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
+            {error && (
+              <div className="p-3 bg-red-950/20 border border-red-900/50 rounded-lg text-red-400 text-[11px] font-mono leading-relaxed">
+                {error}
+              </div>
+            )}
+
+             <div>
               <label className="block text-[11px] font-medium text-zinc-500 mb-1.5 uppercase tracking-wider">
                 Email
               </label>
@@ -39,8 +72,9 @@ export default function Login() {
                 <input
                   type="email"
                   value={email}
+                  disabled={loginMutation.isPending}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-[#0c0c0e] border border-zinc-900 rounded-lg text-zinc-200 placeholder-zinc-700 text-xs focus:outline-none focus:border-zinc-700 transition-colors"
+                  className="w-full pl-9 pr-4 py-2 bg-[#0c0c0e] border border-zinc-900 rounded-lg text-zinc-200 placeholder-zinc-700 text-xs focus:outline-none focus:border-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   placeholder="name@institution.com"
                 />
               </div>
@@ -55,14 +89,16 @@ export default function Login() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
+                  disabled={loginMutation.isPending}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-9 pr-10 py-2 bg-[#0c0c0e] border border-zinc-900 rounded-lg text-zinc-200 placeholder-zinc-700 text-xs focus:outline-none focus:border-zinc-700 transition-colors"
+                  className="w-full pl-9 pr-10 py-2 bg-[#0c0c0e] border border-zinc-900 rounded-lg text-zinc-200 placeholder-zinc-700 text-xs focus:outline-none focus:border-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
+                  disabled={loginMutation.isPending}
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-400 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-400 transition-colors disabled:opacity-50"
                 >
                   {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 </button>
@@ -71,10 +107,20 @@ export default function Login() {
 
             <button
               type="submit"
-              className="w-full py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-950 font-semibold text-xs rounded-lg transition-all flex items-center justify-center gap-2"
+              disabled={loginMutation.isPending}
+              className="w-full py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-950 font-semibold text-xs rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign In
-              <ArrowRight className="w-3.5 h-3.5" />
+              {loginMutation.isPending ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Signing In...
+                </>
+              ) : (
+                <>
+                  Sign In
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </>
+              )}
             </button>
           </form>
 

@@ -13,8 +13,8 @@ export default function Register() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    // Langsung arahkan ke dashboard setelah register (bypass logic)
-    navigate('/dashboard')
+    // Arahkan ke login setelah register agar user bisa masuk menggunakan akun baru
+    navigate('/login')
   }
 
   return (
